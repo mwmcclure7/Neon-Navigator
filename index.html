@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Navigator</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #gameCanvas {
+            display: none;
+            margin: 0 auto;
+        }
+        #menu, #roundEnd, #settingsMenu {
+            margin: 20px auto;
+            width: 400px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #ddd;
+        }
+        input[type="number"], input[type="color"] {
+            padding: 5px;
+            font-size: 16px;
+        }
+        #highScore {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>Neon Navigator</h1>
+        <p>High Score: <span id="highScore">0</span></p>
+        <p>Game Mode:
+            <button id="singlePlayer">Single Player</button>
+            <button id="twoPlayer">Two Player (PvP)</button>
+            <button id="threePlayer">Three Player (PvP)</button>
+        </p>
+        <button id="start">Start Round</button>
+        <button id="settings">Settings</button>
+    </div>
+    <div id="settingsMenu" style="display: none;">
+        <h2>Settings</h2>
+        <label for="rotationSpeed">Rotation Speed (rad/s): </label>
+        <input type="number" id="rotationSpeed" step="0.1" min="0.1" value="3.14"><br>
+        <label for="acceleration">Acceleration (px/s²): </label>
+        <input type="number" id="acceleration" step="10" min="10" value="300"><br>
+        <label for="size">Player Size: </label>
+        <input type="number" id="size" step="1" min="10" value="20"><br>
+        <label for="colorPlayer1">Player 1 Color: </label>
+        <input type="color" id="colorPlayer1" value="#ffffff"><br>
+        <label for="colorPlayer2">Player 2 Color: </label>
+        <input type="color" id="colorPlayer2" value="#ffff00"><br>
+        <label for="colorPlayer3">Player 3 Color: </label>
+        <input type="color" id="colorPlayer3" value="#00ff00"><br>
+        <label for="shootCooldown">Shoot Cooldown (s): </label>
+        <input type="number" id="shootCooldown" step="0.1" min="0.1" value="1"><br>
+        <button id="saveSettings">Save Settings</button>
+        <button id="backFromSettings">Back</button>
+    </div>
+    <div id="roundEnd" style="display: none;">
+        <h2>Round Over</h2>
+        <p id="result"></p>
+        <button id="backToMenu">Back to Menu</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // Canvas setup for full-screen
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // UI elements
+        const menuDiv = document.getElementById('menu');
+        const settingsMenuDiv = document.getElementById('settingsMenu');
+        const roundEndDiv = document.getElementById('roundEnd');
+        const highScoreSpan = document.getElementById('highScore');
+        const startButton = document.getElementById('start');
+        const settingsButton = document.getElementById('settings');
+        const saveSettingsButton = document.getElementById('saveSettings');
+        const backFromSettingsButton = document.getElementById('backFromSettings');
+        const resultP = document.getElementById('result');
+        const backToMenuButton = document.getElementById('backToMenu');
+        const singlePlayerButton = document.getElementById('singlePlayer');
+        const twoPlayerButton = document.getElementById('twoPlayer');
+        const threePlayerButton = document.getElementById('threePlayer');
+
+        // Settings inputs
+        const rotationSpeedInput = document.getElementById('rotationSpeed');
+        const accelerationInput = document.getElementById('acceleration');
+        const sizeInput = document.getElementById('size');
+        const colorPlayer1Input = document.getElementById('colorPlayer1');
+        const colorPlayer2Input = document.getElementById('colorPlayer2');
+        const colorPlayer3Input = document.getElementById('colorPlayer3');
+        const shootCooldownInput = document.getElementById('shootCooldown');
+
+        // Game state variables
+        let gameState = 'menu';
+        let gameMode = 'single'; // Default to single player
+        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+        let players = [];
+        let hazards = [];
+        let explosions = [];
+        let shotCount = 0;
+
+        // Default settings with player colors
+        let settings = {
+            rotationSpeed: 3.14, // radians per second
+            acceleration: 300, // pixels per second squared
+            size: 20,
+            colorPlayer1: '#ffffff', // White for Player 1
+            colorPlayer2: '#ffff00', // Yellow for Player 2
+            colorPlayer3: '#00ff00', // Green for Player 3
+            shootCooldown: 1 // seconds
+        };
+
+        // Load settings from localStorage if available
+        if (localStorage.getItem('settings')) {
+            settings = JSON.parse(localStorage.getItem('settings'));
+        }
+
+        // Update settings inputs with current values
+        rotationSpeedInput.value = settings.rotationSpeed;
+        accelerationInput.value = settings.acceleration;
+        sizeInput.value = settings.size;
+        colorPlayer1Input.value = settings.colorPlayer1;
+        colorPlayer2Input.value = settings.colorPlayer2;
+        colorPlayer3Input.value = settings.colorPlayer3;
+        shootCooldownInput.value = settings.shootCooldown;
+
+        // Key mappings for players
+        const keysPlayer1 = { up: false, left: false, right: false, shoot: false }; // WASD and S
+        const keysPlayer2 = { up: false, left: false, right: false, shoot: false }; // Arrows and ArrowDown
+        const keysPlayer3 = { up: false, left: false, right: false, shoot: false }; // YGHJ and H
+
+        // Initialize high score display
+        highScoreSpan.textContent = highScore;
+
+        // Game mode selection
+        singlePlayerButton.addEventListener('click', () => {
+            gameMode = 'single';
+            singlePlayerButton.style.backgroundColor = 'yellow';
+            twoPlayerButton.style.backgroundColor = '';
+            threePlayerButton.style.backgroundColor = '';
+        });
+        twoPlayerButton.addEventListener('click', () => {
+            gameMode = 'twoPlayer';
+            twoPlayerButton.style.backgroundColor = 'yellow';
+            singlePlayerButton.style.backgroundColor = '';
+            threePlayerButton.style.backgroundColor = '';
+        });
+        threePlayerButton.addEventListener('click', () => {
+            gameMode = 'threePlayer';
+            threePlayerButton.style.backgroundColor = 'yellow';
+            singlePlayerButton.style.backgroundColor = '';
+            twoPlayerButton.style.backgroundColor = '';
+        });
+        singlePlayerButton.style.backgroundColor = 'yellow'; // Default highlight
+
+        // Settings button
+        settingsButton.addEventListener('click', () => {
+            menuDiv.style.display = 'none';
+            settingsMenuDiv.style.display = 'block';
+        });
+
+        // Save settings
+        saveSettingsButton.addEventListener('click', () => {
+            settings.rotationSpeed = parseFloat(rotationSpeedInput.value);
+            settings.acceleration = parseFloat(accelerationInput.value);
+            settings.size = parseInt(sizeInput.value);
+            settings.colorPlayer1 = colorPlayer1Input.value;
+            settings.colorPlayer2 = colorPlayer2Input.value;
+            settings.colorPlayer3 = colorPlayer3Input.value;
+            settings.shootCooldown = parseFloat(shootCooldownInput.value);
+            localStorage.setItem('settings', JSON.stringify(settings));
+            alert('Settings saved!');
+        });
+
+        // Back from settings
+        backFromSettingsButton.addEventListener('click', () => {
+            settingsMenuDiv.style.display = 'none';
+            menuDiv.style.display = 'block';
+        });
+
+        // Start round
+        startButton.addEventListener('click', () => {
+            initializeRound();
+            gameState = 'playing';
+            menuDiv.style.display = 'none';
+            roundEndDiv.style.display = 'none';
+            settingsMenuDiv.style.display = 'none';
+            canvas.style.display = 'block';
+        });
+
+        // Back to menu (refreshes page)
+        backToMenuButton.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Keyboard input
+        window.addEventListener('keydown', (e) => {
+            // Player 1 (WASD)
+            if (e.key === 'w') keysPlayer1.up = true;
+            if (e.key === 'a') keysPlayer1.left = true;
+            if (e.key === 'd') keysPlayer1.right = true;
+            if (e.key === 's') keysPlayer1.shoot = true;
+            // Player 2 (Arrows)
+            if (e.key === 'ArrowUp') keysPlayer2.up = true;
+            if (e.key === 'ArrowLeft') keysPlayer2.left = true;
+            if (e.key === 'ArrowRight') keysPlayer2.right = true;
+            if (e.key === 'ArrowDown') keysPlayer2.shoot = true;
+            // Player 3 (YGHJ)
+            if (e.key === 'y') keysPlayer3.up = true;
+            if (e.key === 'g') keysPlayer3.left = true;
+            if (e.key === 'j') keysPlayer3.right = true;
+            if (e.key === 'h') keysPlayer3.shoot = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            // Player 1
+            if (e.key === 'w') keysPlayer1.up = false;
+            if (e.key === 'a') keysPlayer1.left = false;
+            if (e.key === 'd') keysPlayer1.right = false;
+            if (e.key === 's') keysPlayer1.shoot = false;
+            // Player 2
+            if (e.key === 'ArrowUp') keysPlayer2.up = false;
+            if (e.key === 'ArrowLeft') keysPlayer2.left = false;
+            if (e.key === 'ArrowRight') keysPlayer2.right = false;
+            if (e.key === 'ArrowDown') keysPlayer2.shoot = false;
+            // Player 3
+            if (e.key === 'y') keysPlayer3.up = false;
+            if (e.key === 'g') keysPlayer3.left = false;
+            if (e.key === 'j') keysPlayer3.right = false;
+            if (e.key === 'h') keysPlayer3.shoot = false;
+        });
+
+        // Player class
+        class Player {
+            constructor(x, y, keys, color) {
+                this.position = { x, y };
+                this.velocity = { x: 0, y: 0 };
+                this.angle = 0; // Facing up
+                this.rotationSpeed = settings.rotationSpeed;
+                this.acceleration = settings.acceleration;
+                this.size = settings.size;
+                this.collisionRadius = settings.size / 2;
+                this.keys = keys;
+                this.color = color;
+                this.shootCooldown = 0;
+                this.shootCooldownTime = settings.shootCooldown;
+            }
+            update(delta) {
+                // Rotation
+                if (this.keys.left) this.angle -= this.rotationSpeed * delta;
+                if (this.keys.right) this.angle += this.rotationSpeed * delta;
+                // Acceleration
+                if (this.keys.up) {
+                    this.velocity.x += Math.sin(this.angle) * this.acceleration * delta;
+                    this.velocity.y -= Math.cos(this.angle) * this.acceleration * delta;
+                }
+                // Update position
+                this.position.x += this.velocity.x * delta;
+                this.position.y += this.velocity.y * delta;
+                // Wrap around boundaries
+                if (this.position.x < 0) this.position.x += canvas.width;
+                if (this.position.x > canvas.width) this.position.x -= canvas.width;
+                if (this.position.y < 0) this.position.y += canvas.height;
+                if (this.position.y > canvas.height) this.position.y -= canvas.height;
+                // Shooting
+                if (this.keys.shoot && this.shootCooldown <= 0) {
+                    const offset = this.size + 5;
+                    const spawnX = this.position.x + Math.sin(this.angle) * offset;
+                    const spawnY = this.position.y - Math.cos(this.angle) * offset;
+                    const shootSpeed = 200;
+                    const shootVx = Math.sin(this.angle) * shootSpeed;
+                    const shootVy = -Math.cos(this.angle) * shootSpeed;
+                    const hazardVx = this.velocity.x + shootVx;
+                    const hazardVy = this.velocity.y + shootVy;
+                    const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
+                    hazards.push(new Hazard(
+                        spawnX,
+                        spawnY,
+                        speed,
+                        { x: hazardVx / speed, y: hazardVy / speed }
+                    ));
+                    this.shootCooldown = this.shootCooldownTime;
+                    if (gameMode === 'single') shotCount++;
+                }
+                if (this.shootCooldown > 0) this.shootCooldown -= delta;
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(this.angle);
+                ctx.beginPath();
+                ctx.moveTo(0, -this.size); // Top
+                ctx.lineTo(-this.size, this.size); // Bottom left
+                ctx.lineTo(this.size, this.size); // Bottom right
+                ctx.closePath();
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                if (this.keys.up) {
+                    ctx.beginPath();
+                    ctx.moveTo(-this.size / 2, this.size);
+                    ctx.lineTo(0, this.size * 1.5);
+                    ctx.lineTo(this.size / 2, this.size);
+                    ctx.closePath();
+                    ctx.fillStyle = 'orange';
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Hazard class (circular)
+        class Hazard {
+            constructor(x, y, speed, direction) {
+                this.position = { x, y };
+                this.speed = speed;
+                this.direction = direction;
+                this.size = 10; // Diameter
+            }
+            update(delta) {
+                this.position.x += this.direction.x * this.speed * delta;
+                this.position.y += this.direction.y * this.speed * delta;
+                // Bounce off walls
+                if (this.position.x < 0 || this.position.x > canvas.width) this.direction.x *= -1;
+                if (this.position.y < 0 || this.position.y > canvas.height) this.direction.y *= -1;
+            }
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.size / 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+            }
+        }
+
+        // Explosion class
+        class Explosion {
+            constructor(x, y) {
+                this.position = { x, y };
+                this.radius = 0;
+                this.maxRadius = 50;
+                this.duration = 1;
+                this.timer = 0;
+            }
+            update(delta) {
+                this.timer += delta;
+                if (this.timer < this.duration) {
+                    this.radius = (this.timer / this.duration) * this.maxRadius;
+                }
+            }
+            draw(ctx) {
+                if (this.timer < this.duration) {
+                    ctx.beginPath();
+                    ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 0, 0, ' + (1 - this.timer / this.duration) + ')';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Utility function
+        function distance(p1, p2) {
+            return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+        }
+
+        // Initialize round
+        function initializeRound() {
+            players = [];
+            hazards = [];
+            explosions = [];
+            shotCount = 0;
+
+            if (gameMode === 'single') {
+                players.push(new Player(canvas.width / 2, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
+                // Zero initial hazards
+            } else if (gameMode === 'twoPlayer') {
+                players.push(new Player(canvas.width / 4, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
+                players.push(new Player(3 * canvas.width / 4, canvas.height / 2, keysPlayer2, settings.colorPlayer2));
+            } else if (gameMode === 'threePlayer') {
+                players.push(new Player(canvas.width / 4, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
+                players.push(new Player(canvas.width / 2, canvas.height / 2, keysPlayer2, settings.colorPlayer2));
+                players.push(new Player(3 * canvas.width / 4, canvas.height / 2, keysPlayer3, settings.colorPlayer3));
+            }
+        }
+
+        // Draw grid background
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            for (let x = 0; x <= canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(currentTime) {
+            const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            if (gameState === 'playing') {
+                players.forEach(player => player.update(delta));
+                hazards.forEach(hazard => hazard.update(delta));
+                explosions.forEach(explosion => explosion.update(delta));
+                explosions = explosions.filter(explosion => explosion.timer < explosion.duration);
+
+                // Collision detection
+                players.forEach((player, index) => {
+                    hazards.forEach(hazard => {
+                        if (distance(player.position, hazard.position) < player.collisionRadius + hazard.size / 2) {
+                            explosions.push(new Explosion(player.position.x, player.position.y));
+                            if (gameMode === 'single') {
+                                endRound(false);
+                            } else {
+                                endRound(false, 'Round Over!');
+                            }
+                        }
+                    });
+                });
+
+                // Render
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGrid();
+                players.forEach(player => player.draw(ctx));
+                hazards.forEach(hazard => hazard.draw(ctx));
+                explosions.forEach(explosion => explosion.draw(ctx));
+
+                // Draw UI
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                if (gameMode === 'single') {
+                    ctx.fillText(`Shots: ${shotCount}`, 10, 30);
+                } else {
+                    ctx.fillText(`Player 1`, 10, 30);
+                    ctx.fillText(`Player 2`, canvas.width - 100, 30);
+                    if (gameMode === 'threePlayer') {
+                        ctx.fillText(`Player 3`, canvas.width / 2 - 50, 30);
+                    }
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // End round
+        function endRound(win, message = '') {
+            gameState = 'roundEnd';
+            if (gameMode === 'single' && !win) {
+                resultP.textContent = `You Lose! Shots fired: ${shotCount}`;
+                if (shotCount > highScore) {
+                    highScore = shotCount;
+                    localStorage.setItem('highScore', highScore);
+                }
+            } else {
+                resultP.textContent = message;
+            }
+            canvas.style.display = 'none';
+            roundEndDiv.style.display = 'block';
+        }
+
+        // Start game loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
