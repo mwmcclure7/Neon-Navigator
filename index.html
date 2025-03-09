@@ -121,6 +121,10 @@
         let hazards = [];
         let explosions = [];
         let shotCount = 0;
+        let gameOver = false;
+        let gameOverTimer = 0;
+        let hitPlayerIndex = -1;
+        const animationDuration = 1; // seconds
 
         // Default settings with player colors
         let settings = {
@@ -390,10 +394,12 @@
             hazards = [];
             explosions = [];
             shotCount = 0;
+            gameOver = false;
+            gameOverTimer = 0;
+            hitPlayerIndex = -1;
 
             if (gameMode === 'single') {
                 players.push(new Player(canvas.width / 2, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
-                // Zero initial hazards
             } else if (gameMode === 'twoPlayer') {
                 players.push(new Player(canvas.width / 4, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
                 players.push(new Player(3 * canvas.width / 4, canvas.height / 2, keysPlayer2, settings.colorPlayer2));
@@ -428,24 +434,28 @@
             lastTime = currentTime;
 
             if (gameState === 'playing') {
-                players.forEach(player => player.update(delta));
-                hazards.forEach(hazard => hazard.update(delta));
+                if (!gameOver) {
+                    players.forEach(player => player.update(delta));
+                    hazards.forEach(hazard => hazard.update(delta));
+                    // Collision detection
+                    players.forEach((player, index) => {
+                        hazards.forEach(hazard => {
+                            if (distance(player.position, hazard.position) < player.collisionRadius + hazard.size / 2) {
+                                explosions.push(new Explosion(player.position.x, player.position.y));
+                                gameOver = true;
+                                hitPlayerIndex = index;
+                            }
+                        });
+                    });
+                } else {
+                    gameOverTimer += delta;
+                    if (gameOverTimer >= animationDuration) {
+                        let message = (gameMode === 'single') ? `You Lose! Shots fired: ${shotCount}` : `Player ${hitPlayerIndex + 1} was hit!`;
+                        endRound(false, message);
+                    }
+                }
                 explosions.forEach(explosion => explosion.update(delta));
                 explosions = explosions.filter(explosion => explosion.timer < explosion.duration);
-
-                // Collision detection
-                players.forEach((player, index) => {
-                    hazards.forEach(hazard => {
-                        if (distance(player.position, hazard.position) < player.collisionRadius + hazard.size / 2) {
-                            explosions.push(new Explosion(player.position.x, player.position.y));
-                            if (gameMode === 'single') {
-                                endRound(false);
-                            } else {
-                                endRound(false, 'Round Over!');
-                            }
-                        }
-                    });
-                });
 
                 // Render
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -474,14 +484,11 @@
         // End round
         function endRound(win, message = '') {
             gameState = 'roundEnd';
-            if (gameMode === 'single' && !win) {
-                resultP.textContent = `You Lose! Shots fired: ${shotCount}`;
-                if (shotCount > highScore) {
-                    highScore = shotCount;
-                    localStorage.setItem('highScore', highScore);
-                }
-            } else {
-                resultP.textContent = message;
+            resultP.textContent = message;
+            if (gameMode === 'single' && shotCount > highScore) {
+                highScore = shotCount;
+                localStorage.setItem('highScore', highScore);
+                highScoreSpan.textContent = highScore;
             }
             canvas.style.display = 'none';
             roundEndDiv.style.display = 'block';
