@@ -55,9 +55,9 @@
     <div id="settingsMenu" style="display: none;">
         <h2>Settings</h2>
         <label for="rotationSpeed">Rotation Speed (rad/s): </label>
-        <input type="number" id="rotationSpeed" step="0.1" min="0.1" value="3.14"><br>
+        <input type="number" id="rotationSpeed" step="0.1" min="0.1" value="6.28"><br>
         <label for="acceleration">Acceleration (px/s²): </label>
-        <input type="number" id="acceleration" step="10" min="10" value="300"><br>
+        <input type="number" id="acceleration" step="10" min="10" value="1000"><br>
         <label for="size">Player Size: </label>
         <input type="number" id="size" step="1" min="10" value="20"><br>
         <label for="colorPlayer1">Player 1 Color: </label>
@@ -67,7 +67,7 @@
         <label for="colorPlayer3">Player 3 Color: </label>
         <input type="color" id="colorPlayer3" value="#00ff00"><br>
         <label for="shootCooldown">Shoot Cooldown (s): </label>
-        <input type="number" id="shootCooldown" step="0.1" min="0.1" value="1"><br>
+        <input type="number" id="shootCooldown" step="0.1" min="0.1" value="0.5"><br>
         <label for="numBullets">Number of Bullets: </label>
         <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
         <button id="saveSettings">Save Settings</button>
@@ -138,24 +138,23 @@
         let hitPlayerIndex = -1;
         const animationDuration = 1;
 
-        // Default settings with player colors and number of bullets
-        let settings = {
-            rotationSpeed: 3.14,
-            acceleration: 300,
+        // Default settings with specified values
+        const defaultSettings = {
+            rotationSpeed: 6.28,  // Default turn speed: 6.28 rad/s
+            acceleration: 1000,   // Default speed (acceleration): 1000 px/s²
             size: 20,
             colorPlayer1: '#ffffff',
             colorPlayer2: '#ffff00',
             colorPlayer3: '#00ff00',
-            shootCooldown: 1,
-            numBullets: 1
+            shootCooldown: 0.5,   // Default shot rate: 0.5 seconds
+            numBullets: 1         // Default number of bullets: 1
         };
 
-        // Load settings from localStorage if available
-        if (localStorage.getItem('settings')) {
-            settings = JSON.parse(localStorage.getItem('settings'));
-        }
+        // Load settings from localStorage, merging with defaults to fix the bug
+        let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
+        let settings = { ...defaultSettings, ...storedSettings };
 
-        // Update settings inputs with current values
+        // Initialize settings inputs with current values
         rotationSpeedInput.value = settings.rotationSpeed;
         accelerationInput.value = settings.acceleration;
         sizeInput.value = settings.size;
