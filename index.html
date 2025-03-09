@@ -68,6 +68,8 @@
         <input type="color" id="colorPlayer3" value="#00ff00"><br>
         <label for="shootCooldown">Shoot Cooldown (s): </label>
         <input type="number" id="shootCooldown" step="0.1" min="0.1" value="1"><br>
+        <label for="numBullets">Number of Bullets: </label>
+        <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
@@ -115,6 +117,7 @@
         const colorPlayer2Input = document.getElementById('colorPlayer2');
         const colorPlayer3Input = document.getElementById('colorPlayer3');
         const shootCooldownInput = document.getElementById('shootCooldown');
+        const numBulletsInput = document.getElementById('numBullets');
 
         // Audio elements
         const backgroundMusic = document.getElementById('backgroundMusic');
@@ -135,7 +138,7 @@
         let hitPlayerIndex = -1;
         const animationDuration = 1;
 
-        // Default settings with player colors
+        // Default settings with player colors and number of bullets
         let settings = {
             rotationSpeed: 3.14,
             acceleration: 300,
@@ -143,7 +146,8 @@
             colorPlayer1: '#ffffff',
             colorPlayer2: '#ffff00',
             colorPlayer3: '#00ff00',
-            shootCooldown: 1
+            shootCooldown: 1,
+            numBullets: 1
         };
 
         // Load settings from localStorage if available
@@ -159,6 +163,7 @@
         colorPlayer2Input.value = settings.colorPlayer2;
         colorPlayer3Input.value = settings.colorPlayer3;
         shootCooldownInput.value = settings.shootCooldown;
+        numBulletsInput.value = settings.numBullets;
 
         // Key mappings for players
         const keysPlayer1 = { up: false, left: false, right: false, shoot: false };
@@ -208,6 +213,7 @@
             settings.colorPlayer2 = colorPlayer2Input.value;
             settings.colorPlayer3 = colorPlayer3Input.value;
             settings.shootCooldown = parseFloat(shootCooldownInput.value);
+            settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
             localStorage.setItem('settings', JSON.stringify(settings));
             alert('Settings saved!');
             clickSound.play();
@@ -303,21 +309,50 @@
                 if (this.position.y < 0) this.position.y += canvas.height;
                 if (this.position.y > canvas.height) this.position.y -= canvas.height;
                 if (this.keys.shoot && this.shootCooldown <= 0) {
+                    const numBullets = settings.numBullets;
                     const offset = this.size + 5;
-                    const spawnX = this.position.x + Math.sin(this.angle) * offset;
-                    const spawnY = this.position.y - Math.cos(this.angle) * offset;
                     const shootSpeed = 200;
-                    const shootVx = Math.sin(this.angle) * shootSpeed;
-                    const shootVy = -Math.cos(this.angle) * shootSpeed;
-                    const hazardVx = this.velocity.x + shootVx;
-                    const hazardVy = this.velocity.y + shootVy;
-                    const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
-                    hazards.push(new Hazard(
-                        spawnX,
-                        spawnY,
-                        speed,
-                        { x: hazardVx / speed, y: hazardVy / speed }
-                    ));
+
+                    if (numBullets === 1) {
+                        const spawnX = this.position.x + Math.sin(this.angle) * offset;
+                        const spawnY = this.position.y - Math.cos(this.angle) * offset;
+                        const shootVx = Math.sin(this.angle) * shootSpeed;
+                        const shootVy = -Math.cos(this.angle) * shootSpeed;
+                        const hazardVx = this.velocity.x + shootVx;
+                        const hazardVy = this.velocity.y + shootVy;
+                        const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
+                        hazards.push(new Hazard(
+                            spawnX,
+                            spawnY,
+                            speed,
+                            { x: hazardVx / speed, y: hazardVy / speed }
+                        ));
+                    } else {
+                        const spreadDegrees = numBullets === 10 ? 360 : 40 * (numBullets - 1);
+                        const spreadRadians = spreadDegrees * Math.PI / 180;
+                        const angleStep = spreadRadians / (numBullets - 1 || 1); // Avoid division by zero
+                        const startAngle = this.angle - (spreadRadians / 2);
+
+                        for (let i = 0; i < numBullets; i++) {
+                            const bulletAngle = numBullets === 10 ? 
+                                this.angle + (i * 2 * Math.PI / numBullets) : 
+                                startAngle + (i * angleStep);
+                            const spawnX = this.position.x + Math.sin(bulletAngle) * offset;
+                            const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
+                            const shootVx = Math.sin(bulletAngle) * shootSpeed;
+                            const shootVy = -Math.cos(bulletAngle) * shootSpeed;
+                            const hazardVx = this.velocity.x + shootVx;
+                            const hazardVy = this.velocity.y + shootVy;
+                            const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
+                            hazards.push(new Hazard(
+                                spawnX,
+                                spawnY,
+                                speed,
+                                { x: hazardVx / speed, y: hazardVy / speed }
+                            ));
+                        }
+                    }
+
                     this.shootCooldown = this.shootCooldownTime;
                     laserSound.play();
                     if (gameMode === 'single') shotCount++;
