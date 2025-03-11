@@ -38,16 +38,28 @@
             font-size: 24px;
             font-weight: bold;
         }
+        #difficultyOptions {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="menu">
         <h1>Neon Navigator</h1>
         <p>High Score: <span id="highScore">0</span></p>
-        <p>Game Mode:
+        <p>Game Type:
+            <button id="pvpMode">PvP</button>
+            <button id="survivalMode">Survival</button>
+        </p>
+        <p>Players:
             <button id="singlePlayer">Single Player</button>
-            <button id="twoPlayer">Two Player (PvP)</button>
-            <button id="threePlayer">Three Player (PvP)</button>
+            <button id="twoPlayer">Two Player</button>
+            <button id="threePlayer">Three Player</button>
+        </p>
+        <p id="difficultyOptions">Difficulty (Survival Mode):
+            <button id="easy">Easy</button>
+            <button id="medium">Medium</button>
+            <button id="hard">Hard</button>
         </p>
         <button id="start">Start Round</button>
         <button id="settings">Settings</button>
@@ -87,7 +99,6 @@
     </audio>
 
     <script>
-        // Canvas setup for full-screen
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -112,6 +123,12 @@
         const singlePlayerButton = document.getElementById('singlePlayer');
         const twoPlayerButton = document.getElementById('twoPlayer');
         const threePlayerButton = document.getElementById('threePlayer');
+        const pvpModeButton = document.getElementById('pvpMode');
+        const survivalModeButton = document.getElementById('survivalMode');
+        const easyButton = document.getElementById('easy');
+        const mediumButton = document.getElementById('medium');
+        const hardButton = document.getElementById('hard');
+        const difficultyOptions = document.getElementById('difficultyOptions');
 
         // Settings inputs
         const rotationSpeedInput = document.getElementById('rotationSpeed');
@@ -133,17 +150,34 @@
         // Game state variables
         let gameState = 'menu';
         let gameMode = 'single';
-        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+        let gameType = 'pvp';
+        let difficulty = 'easy';
+        let highScores = {
+            survival: {
+                single: { easy: 0, medium: 0, hard: 0 },
+                twoPlayer: { easy: 0, medium: 0, hard: 0 },
+                threePlayer: { easy: 0, medium: 0, hard: 0 }
+            },
+            pvp: { single: 0, twoPlayer: 0, threePlayer: 0 }
+        };
         let players = [];
         let hazards = [];
         let explosions = [];
         let shotCount = 0;
+        let survivalTime = 0;
+        let lastBulletSpawn = 0;
         let gameOver = false;
         let gameOverTimer = 0;
         let hitPlayerIndex = -1;
         const animationDuration = 1;
 
-        // Default settings with specified values
+        // Load high scores
+        if (localStorage.getItem('highScores')) {
+            highScores = JSON.parse(localStorage.getItem('highScores'));
+        }
+        highScoreSpan.textContent = highScores.pvp.single;
+
+        // Default settings
         const defaultSettings = {
             rotationSpeed: 6.28,
             acceleration: 1000,
@@ -155,12 +189,10 @@
             numBullets: 1,
             bulletSpeed: 200
         };
-
-        // Load settings from localStorage, merging with defaults
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
 
-        // Initialize settings inputs with current values
+        // Initialize settings inputs
         rotationSpeedInput.value = settings.rotationSpeed;
         accelerationInput.value = settings.acceleration;
         sizeInput.value = settings.size;
@@ -171,15 +203,12 @@
         numBulletsInput.value = settings.numBullets;
         bulletSpeedInput.value = settings.bulletSpeed;
 
-        // Key mappings for players
+        // Key mappings
         const keysPlayer1 = { up: false, left: false, right: false, shoot: false };
         const keysPlayer2 = { up: false, left: false, right: false, shoot: false };
         const keysPlayer3 = { up: false, left: false, right: false, shoot: false };
 
-        // Initialize high score display
-        highScoreSpan.textContent = highScore;
-
-        // Function to stop all audio
+        // Stop all audio
         function stopAllAudio() {
             backgroundMusic.pause();
             backgroundMusic.currentTime = 0;
@@ -197,12 +226,32 @@
             });
         }
 
-        // Game mode selection
+        // Game type selection
+        pvpModeButton.addEventListener('click', () => {
+            gameType = 'pvp';
+            pvpModeButton.style.backgroundColor = 'yellow';
+            survivalModeButton.style.backgroundColor = '';
+            difficultyOptions.style.display = 'none';
+            updateHighScoreDisplay();
+            clickSound.play();
+        });
+        survivalModeButton.addEventListener('click', () => {
+            gameType = 'survival';
+            survivalModeButton.style.backgroundColor = 'yellow';
+            pvpModeButton.style.backgroundColor = '';
+            difficultyOptions.style.display = 'block';
+            updateHighScoreDisplay();
+            clickSound.play();
+        });
+        pvpModeButton.style.backgroundColor = 'yellow';
+
+        // Player selection
         singlePlayerButton.addEventListener('click', () => {
             gameMode = 'single';
             singlePlayerButton.style.backgroundColor = 'yellow';
             twoPlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
             clickSound.play();
         });
         twoPlayerButton.addEventListener('click', () => {
@@ -210,6 +259,7 @@
             twoPlayerButton.style.backgroundColor = 'yellow';
             singlePlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
             clickSound.play();
         });
         threePlayerButton.addEventListener('click', () => {
@@ -217,9 +267,37 @@
             threePlayerButton.style.backgroundColor = 'yellow';
             singlePlayerButton.style.backgroundColor = '';
             twoPlayerButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
             clickSound.play();
         });
         singlePlayerButton.style.backgroundColor = 'yellow';
+
+        // Difficulty selection
+        easyButton.addEventListener('click', () => {
+            difficulty = 'easy';
+            easyButton.style.backgroundColor = 'yellow';
+            mediumButton.style.backgroundColor = '';
+            hardButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
+            clickSound.play();
+        });
+        mediumButton.addEventListener('click', () => {
+            difficulty = 'medium';
+            mediumButton.style.backgroundColor = 'yellow';
+            easyButton.style.backgroundColor = '';
+            hardButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
+            clickSound.play();
+        });
+        hardButton.addEventListener('click', () => {
+            difficulty = 'hard';
+            hardButton.style.backgroundColor = 'yellow';
+            easyButton.style.backgroundColor = '';
+            mediumButton.style.backgroundColor = '';
+            updateHighScoreDisplay();
+            clickSound.play();
+        });
+        easyButton.style.backgroundColor = 'yellow';
 
         // Settings button
         settingsButton.addEventListener('click', () => {
@@ -264,7 +342,7 @@
 
         // Back to menu
         backToMenuButton.addEventListener('click', () => {
-            stopAllAudio(); // Stop all audio before reloading
+            stopAllAudio();
             location.reload();
             clickSound.play();
         });
@@ -284,15 +362,15 @@
             if (e.key === 'w') keysPlayer1.up = true;
             if (e.key === 'a') keysPlayer1.left = true;
             if (e.key === 'd') keysPlayer1.right = true;
-            if (e.key === 's') keysPlayer1.shoot = true;
+            if (e.key === 's' && gameType === 'pvp') keysPlayer1.shoot = true;
             if (e.key === 'ArrowUp') keysPlayer2.up = true;
             if (e.key === 'ArrowLeft') keysPlayer2.left = true;
             if (e.key === 'ArrowRight') keysPlayer2.right = true;
-            if (e.key === 'ArrowDown') keysPlayer2.shoot = true;
+            if (e.key === 'ArrowDown' && gameType === 'pvp') keysPlayer2.shoot = true;
             if (e.key === 'y') keysPlayer3.up = true;
             if (e.key === 'g') keysPlayer3.left = true;
             if (e.key === 'j') keysPlayer3.right = true;
-            if (e.key === 'h') keysPlayer3.shoot = true;
+            if (e.key === 'h' && gameType === 'pvp') keysPlayer3.shoot = true;
             if (e.key === 'r' && gameState === 'roundEnd') {
                 initializeRound();
                 gameState = 'playing';
@@ -333,8 +411,10 @@
                 this.shootCooldownTime = settings.shootCooldown;
                 this.engineSound = new Audio('engine.mp3');
                 this.engineSound.loop = true;
+                this.alive = true;
             }
             update(delta) {
+                if (!this.alive) return;
                 if (this.keys.left) this.angle -= this.rotationSpeed * delta;
                 if (this.keys.right) this.angle += this.rotationSpeed * delta;
                 if (this.keys.up) {
@@ -351,7 +431,8 @@
                 if (this.position.x > canvas.width) this.position.x -= canvas.width;
                 if (this.position.y < 0) this.position.y += canvas.height;
                 if (this.position.y > canvas.height) this.position.y -= canvas.height;
-                if (this.keys.shoot && this.shootCooldown <= 0) {
+
+                if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
                     const numBullets = settings.numBullets;
                     const offset = this.size + 5;
                     const shootSpeed = settings.bulletSpeed;
@@ -364,12 +445,7 @@
                         const hazardVx = this.velocity.x + shootVx;
                         const hazardVy = this.velocity.y + shootVy;
                         const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
-                        hazards.push(new Hazard(
-                            spawnX,
-                            spawnY,
-                            speed,
-                            { x: hazardVx / speed, y: hazardVy / speed }
-                        ));
+                        hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
                     } else {
                         const spreadDegrees = numBullets === 10 ? 360 : 40 * (numBullets - 1);
                         const spreadRadians = spreadDegrees * Math.PI / 180;
@@ -377,9 +453,7 @@
                         const startAngle = this.angle - (spreadRadians / 2);
 
                         for (let i = 0; i < numBullets; i++) {
-                            const bulletAngle = numBullets === 10 ? 
-                                this.angle + (i * 2 * Math.PI / numBullets) : 
-                                startAngle + (i * angleStep);
+                            const bulletAngle = numBullets === 10 ? this.angle + (i * 2 * Math.PI / numBullets) : startAngle + (i * angleStep);
                             const spawnX = this.position.x + Math.sin(bulletAngle) * offset;
                             const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
                             const shootVx = Math.sin(bulletAngle) * shootSpeed;
@@ -387,12 +461,7 @@
                             const hazardVx = this.velocity.x + shootVx;
                             const hazardVy = this.velocity.y + shootVy;
                             const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
-                            hazards.push(new Hazard(
-                                spawnX,
-                                spawnY,
-                                speed,
-                                { x: hazardVx / speed, y: hazardVy / speed }
-                            ));
+                            hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
                         }
                     }
 
@@ -403,6 +472,7 @@
                 if (this.shootCooldown > 0) this.shootCooldown -= delta;
             }
             draw(ctx) {
+                if (!this.alive) return;
                 ctx.save();
                 ctx.translate(this.position.x, this.position.y);
                 ctx.rotate(this.angle);
@@ -474,9 +544,50 @@
             }
         }
 
-        // Utility function
+        // Utility functions
         function distance(p1, p2) {
             return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+        }
+
+        function updateHighScoreDisplay() {
+            if (gameType === 'pvp') {
+                highScoreSpan.textContent = highScores.pvp[gameMode];
+            } else {
+                highScoreSpan.textContent = highScores.survival[gameMode][difficulty];
+            }
+        }
+
+        function spawnSurvivalHazard() {
+            const edge = Math.floor(Math.random() * 4);
+            let x, y, direction;
+            const speed = Math.random() * (settings.bulletSpeed * 1.5 - settings.bulletSpeed * 0.5) + settings.bulletSpeed * 0.5;
+
+            switch (edge) {
+                case 0: // Top
+                    x = Math.random() * canvas.width;
+                    y = 0;
+                    direction = { x: Math.random() * 2 - 1, y: 1 };
+                    break;
+                case 1: // Right
+                    x = canvas.width;
+                    y = Math.random() * canvas.height;
+                    direction = { x: -1, y: Math.random() * 2 - 1 };
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * canvas.width;
+                    y = canvas.height;
+                    direction = { x: Math.random() * 2 - 1, y: -1 };
+                    break;
+                case 3: // Left
+                    x = 0;
+                    y = Math.random() * canvas.height;
+                    direction = { x: 1, y: Math.random() * 2 - 1 };
+                    break;
+            }
+            const mag = Math.sqrt(direction.x ** 2 + direction.y ** 2);
+            direction.x /= mag;
+            direction.y /= mag;
+            hazards.push(new Hazard(x, y, speed, direction));
         }
 
         // Initialize round
@@ -485,9 +596,12 @@
             hazards = [];
             explosions = [];
             shotCount = 0;
+            survivalTime = 0;
+            lastBulletSpawn = 0;
             gameOver = false;
             gameOverTimer = 0;
             hitPlayerIndex = -1;
+
             if (gameMode === 'single') {
                 players.push(new Player(canvas.width / 2, canvas.height / 2, keysPlayer1, settings.colorPlayer1));
             } else if (gameMode === 'twoPlayer') {
@@ -527,23 +641,66 @@
                 if (!gameOver) {
                     players.forEach(player => player.update(delta));
                     hazards.forEach(hazard => hazard.update(delta));
+
+                    // Survival mode bullet spawning
+                    if (gameType === 'survival') {
+                        survivalTime += delta;
+                        const spawnInterval = difficulty === 'easy' ? 2 : difficulty === 'medium' ? 1 : 0.5;
+                        if (survivalTime - lastBulletSpawn >= spawnInterval) {
+                            spawnSurvivalHazard();
+                            lastBulletSpawn = survivalTime;
+                        }
+                    }
+
+                    // Collision detection
                     players.forEach((player, index) => {
+                        if (!player.alive) return;
                         hazards.forEach(hazard => {
                             if (distance(player.position, hazard.position) < player.collisionRadius + hazard.size / 2) {
+                                player.alive = false;
                                 explosions.push(new Explosion(player.position.x, player.position.y));
                                 explosionSound.play();
-                                gameOver = true;
                                 hitPlayerIndex = index;
                             }
                         });
                     });
+
+                    const alivePlayers = players.filter(p => p.alive);
+                    if (gameMode === 'single' && alivePlayers.length === 0) {
+                        gameOver = true;
+                    } else if (gameMode === 'twoPlayer' && alivePlayers.length <= 1) {
+                        gameOver = true;
+                    } else if (gameMode === 'threePlayer' && alivePlayers.length <= 1) {
+                        gameOver = true;
+                    }
                 } else {
                     gameOverTimer += delta;
                     if (gameOverTimer >= animationDuration) {
-                        let message = (gameMode === 'single') ? `You Lose! Shots fired: ${shotCount}` : `Player ${hitPlayerIndex + 1} was hit!`;
-                        endRound(false, message);
+                        const alivePlayers = players.filter(p => p.alive);
+                        let message = '';
+                        if (gameType === 'pvp') {
+                            if (gameMode === 'single') {
+                                message = `You Lose! Shots fired: ${shotCount}`;
+                            } else if (alivePlayers.length === 1) {
+                                const winnerIndex = players.indexOf(alivePlayers[0]) + 1;
+                                message = `Player ${winnerIndex} Wins!`;
+                            } else {
+                                message = 'No Winner!';
+                            }
+                        } else {
+                            if (gameMode === 'single') {
+                                message = `Survived: ${survivalTime.toFixed(1)}s`;
+                            } else if (alivePlayers.length === 1) {
+                                const winnerIndex = players.indexOf(alivePlayers[0]) + 1;
+                                message = `Player ${winnerIndex} Wins!`;
+                            } else {
+                                message = 'No Winner!';
+                            }
+                        }
+                        endRound(alivePlayers.length > 0, message);
                     }
                 }
+
                 explosions.forEach(explosion => explosion.update(delta));
                 explosions = explosions.filter(explosion => explosion.timer < explosion.duration);
 
@@ -555,8 +712,10 @@
 
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
-                if (gameMode === 'single') {
+                if (gameType === 'pvp' && gameMode === 'single') {
                     ctx.fillText(`Shots: ${shotCount}`, 10, 30);
+                } else if (gameType === 'survival') {
+                    ctx.fillText(`Time: ${survivalTime.toFixed(1)}s`, 10, 30);
                 } else {
                     ctx.fillText(`Player 1`, 10, 30);
                     ctx.fillText(`Player 2`, canvas.width - 100, 30);
@@ -573,12 +732,16 @@
         function endRound(win, message = '') {
             gameState = 'roundEnd';
             resultP.textContent = message;
-            if (gameMode === 'single' && shotCount > highScore) {
-                highScore = shotCount;
-                localStorage.setItem('highScore', highScore);
-                highScoreSpan.textContent = highScore;
+            if (gameType === 'pvp' && gameMode === 'single' && shotCount > highScores.pvp.single) {
+                highScores.pvp.single = shotCount;
+                localStorage.setItem('highScores', JSON.stringify(highScores));
+                updateHighScoreDisplay();
+            } else if (gameType === 'survival' && gameMode === 'single' && survivalTime > highScores.survival.single[difficulty]) {
+                highScores.survival.single[difficulty] = Math.floor(survivalTime);
+                localStorage.setItem('highScores', JSON.stringify(highScores));
+                updateHighScoreDisplay();
             }
-            stopAllAudio(); // Stop all audio when round ends
+            stopAllAudio();
             canvas.style.display = 'none';
             roundEndDiv.style.display = 'block';
         }
