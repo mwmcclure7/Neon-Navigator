@@ -19,20 +19,31 @@
         }
         #menu, #roundEnd, #settingsMenu {
             margin: 20px auto;
-            width: 400px;
+            width: 600px;
         }
         button {
             margin: 5px;
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
+            border-radius: 5px;
         }
         button:hover {
-            background-color: #ddd;
+            background-color: cyan;
+        }
+        a {
+            color: cyan;
+            text-decoration: none;
+        }
+        a:hover {
+            color: yellow;
+            text-decoration: underline;
         }
         input[type="number"], input[type="color"] {
             padding: 5px;
             font-size: 16px;
+            margin: 5px;
+            border-radius: 5px;
         }
         #highScore {
             font-size: 24px;
@@ -63,6 +74,8 @@
         </p>
         <button id="start">Start Round</button>
         <button id="settings">Settings</button>
+        <p style="margin-top: 75px;">Learn how to make games like this at <a href="https://www.softwaresensei.ai" target="_blank" rel="noopener noreferrer">Sensei.AI</a></p>
+        <img src="Sensei.AI Logo.svg" alt="Sensei.AI Logo" width="200px">
     </div>
     <div id="settingsMenu" style="display: none;">
         <h2>Settings</h2>
