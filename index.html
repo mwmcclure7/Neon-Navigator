@@ -70,6 +70,8 @@
         <input type="number" id="shootCooldown" step="0.1" min="0.1" value="0.5"><br>
         <label for="numBullets">Number of Bullets: </label>
         <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
+        <label for="bulletSpeed">Bullet Speed (px/s): </label>
+        <input type="number" id="bulletSpeed" step="10" min="50" value="200"><br>
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
@@ -77,6 +79,7 @@
         <h2>Round Over</h2>
         <p id="result"></p>
         <button id="backToMenu">Back to Menu</button>
+        <button id="playAgain">Play Again</button>
     </div>
     <canvas id="gameCanvas"></canvas>
     <audio id="backgroundMusic" loop>
@@ -105,6 +108,7 @@
         const backFromSettingsButton = document.getElementById('backFromSettings');
         const resultP = document.getElementById('result');
         const backToMenuButton = document.getElementById('backToMenu');
+        const playAgainButton = document.getElementById('playAgain');
         const singlePlayerButton = document.getElementById('singlePlayer');
         const twoPlayerButton = document.getElementById('twoPlayer');
         const threePlayerButton = document.getElementById('threePlayer');
@@ -118,6 +122,7 @@
         const colorPlayer3Input = document.getElementById('colorPlayer3');
         const shootCooldownInput = document.getElementById('shootCooldown');
         const numBulletsInput = document.getElementById('numBullets');
+        const bulletSpeedInput = document.getElementById('bulletSpeed');
 
         // Audio elements
         const backgroundMusic = document.getElementById('backgroundMusic');
@@ -140,17 +145,18 @@
 
         // Default settings with specified values
         const defaultSettings = {
-            rotationSpeed: 6.28,  // Default turn speed: 6.28 rad/s
-            acceleration: 1000,   // Default speed (acceleration): 1000 px/s²
+            rotationSpeed: 6.28,
+            acceleration: 1000,
             size: 20,
             colorPlayer1: '#ffffff',
             colorPlayer2: '#ffff00',
             colorPlayer3: '#00ff00',
-            shootCooldown: 0.5,   // Default shot rate: 0.5 seconds
-            numBullets: 1         // Default number of bullets: 1
+            shootCooldown: 0.5,
+            numBullets: 1,
+            bulletSpeed: 200
         };
 
-        // Load settings from localStorage, merging with defaults to fix the bug
+        // Load settings from localStorage, merging with defaults
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
 
@@ -163,6 +169,7 @@
         colorPlayer3Input.value = settings.colorPlayer3;
         shootCooldownInput.value = settings.shootCooldown;
         numBulletsInput.value = settings.numBullets;
+        bulletSpeedInput.value = settings.bulletSpeed;
 
         // Key mappings for players
         const keysPlayer1 = { up: false, left: false, right: false, shoot: false };
@@ -171,6 +178,24 @@
 
         // Initialize high score display
         highScoreSpan.textContent = highScore;
+
+        // Function to stop all audio
+        function stopAllAudio() {
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+            laserSound.pause();
+            laserSound.currentTime = 0;
+            explosionSound.pause();
+            explosionSound.currentTime = 0;
+            clickSound.pause();
+            clickSound.currentTime = 0;
+            players.forEach(player => {
+                if (player.engineSound) {
+                    player.engineSound.pause();
+                    player.engineSound.currentTime = 0;
+                }
+            });
+        }
 
         // Game mode selection
         singlePlayerButton.addEventListener('click', () => {
@@ -213,8 +238,8 @@
             settings.colorPlayer3 = colorPlayer3Input.value;
             settings.shootCooldown = parseFloat(shootCooldownInput.value);
             settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
+            settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
             localStorage.setItem('settings', JSON.stringify(settings));
-            alert('Settings saved!');
             clickSound.play();
         });
 
@@ -239,7 +264,18 @@
 
         // Back to menu
         backToMenuButton.addEventListener('click', () => {
+            stopAllAudio(); // Stop all audio before reloading
             location.reload();
+            clickSound.play();
+        });
+
+        // Play again
+        playAgainButton.addEventListener('click', () => {
+            initializeRound();
+            gameState = 'playing';
+            roundEndDiv.style.display = 'none';
+            canvas.style.display = 'block';
+            backgroundMusic.play();
             clickSound.play();
         });
 
@@ -257,6 +293,14 @@
             if (e.key === 'g') keysPlayer3.left = true;
             if (e.key === 'j') keysPlayer3.right = true;
             if (e.key === 'h') keysPlayer3.shoot = true;
+            if (e.key === 'r' && gameState === 'roundEnd') {
+                initializeRound();
+                gameState = 'playing';
+                roundEndDiv.style.display = 'none';
+                canvas.style.display = 'block';
+                backgroundMusic.play();
+                clickSound.play();
+            }
         });
         window.addEventListener('keyup', (e) => {
             if (e.key === 'w') keysPlayer1.up = false;
@@ -310,7 +354,7 @@
                 if (this.keys.shoot && this.shootCooldown <= 0) {
                     const numBullets = settings.numBullets;
                     const offset = this.size + 5;
-                    const shootSpeed = 200;
+                    const shootSpeed = settings.bulletSpeed;
 
                     if (numBullets === 1) {
                         const spawnX = this.position.x + Math.sin(this.angle) * offset;
@@ -329,7 +373,7 @@
                     } else {
                         const spreadDegrees = numBullets === 10 ? 360 : 40 * (numBullets - 1);
                         const spreadRadians = spreadDegrees * Math.PI / 180;
-                        const angleStep = spreadRadians / (numBullets - 1 || 1); // Avoid division by zero
+                        const angleStep = spreadRadians / (numBullets - 1 || 1);
                         const startAngle = this.angle - (spreadRadians / 2);
 
                         for (let i = 0; i < numBullets; i++) {
@@ -534,8 +578,7 @@
                 localStorage.setItem('highScore', highScore);
                 highScoreSpan.textContent = highScore;
             }
-            backgroundMusic.pause();
-            backgroundMusic.currentTime = 0;
+            stopAllAudio(); // Stop all audio when round ends
             canvas.style.display = 'none';
             roundEndDiv.style.display = 'block';
         }
