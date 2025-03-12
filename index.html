@@ -553,7 +553,7 @@
 
                 if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
                     const numBullets = settings.numBullets;
-                    const offset = this.size + this.collisionRadius + 5;
+                    const offset = this.size + settings.bulletCoinSize / 2;
                     const shootSpeed = settings.bulletSpeed;
 
                     if (numBullets === 1) {
