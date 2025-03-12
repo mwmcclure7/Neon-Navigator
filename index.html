@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Navigator</title>
-    <link rel="icon" href="Sensei.AI Logo.svg" type="image/svg+xml"> <!-- Favicon set to Sensei AI logo -->
+    <link rel="icon" href="Sensei.AI Logo.svg" type="image/svg+xml">
     <style>
         body {
             background-color: black;
@@ -110,6 +110,8 @@
         <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
         <label for="bulletSpeed">Bullet Speed (px/s): </label>
         <input type="number" id="bulletSpeed" step="10" min="50" value="200"><br>
+        <label for="numLives">Number of Lives: </label>
+        <input type="number" id="numLives" step="1" min="1" max="99" value="1"><br>
         <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
@@ -175,18 +177,27 @@
         const shootCooldownInput = document.getElementById('shootCooldown');
         const numBulletsInput = document.getElementById('numBullets');
         const bulletSpeedInput = document.getElementById('bulletSpeed');
+        const numLivesInput = document.getElementById('numLives');
 
-        // Audio Elements
-        const backgroundMusic = document.getElementById('backgroundMusic');
-        const explosionSound = new Audio('explosion.mp3');
-        const clickSound = new Audio('click.mp3');
-
+        // Audio Functions
         function playLaserSound() {
             const sound = new Audio('laser.mp3');
             sound.play();
         }
+        function playExplosionSound() {
+            const sound = new Audio('explosion.mp3');
+            sound.play();
+        }
+        function playClickSound() {
+            const sound = new Audio('click.mp3');
+            sound.play();
+        }
         function playCoinSound() {
             const sound = new Audio('coin.mp3');
+            sound.play();
+        }
+        function playDamageSound() {
+            const sound = new Audio('damage.mp3');
             sound.play();
         }
 
@@ -195,12 +206,12 @@
         let gameMode = 'single';
         let gameType = 'pvp';
         let difficulty = 'easy';
-        let coinQuantity = 5; // Default coin quantity
+        let coinQuantity = 5;
         let coinAppearance = 'all';
         let highScores = JSON.parse(localStorage.getItem('highScores')) || {
             survival: { single: { easy: 0, medium: 0, hard: 0 }, twoPlayer: { easy: 0, medium: 0, hard: 0 }, threePlayer: { easy: 0, medium: 0, hard: 0 } },
             pvp: { single: 0, twoPlayer: 0, threePlayer: 0 },
-            coins: { single: { '5': Infinity, '10': Infinity, '25': Infinity } } // Use strings as keys for consistency
+            coins: { single: { '5': Infinity, '10': Infinity, '25': Infinity } }
         };
         let players = [];
         let hazards = [];
@@ -231,7 +242,8 @@
             shootCooldown: 0.5,
             numBullets: 1,
             bulletSpeed: 300,
-            bouncyWalls: false
+            bouncyWalls: false,
+            numLives: 1
         };
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
@@ -247,6 +259,7 @@
         shootCooldownInput.value = settings.shootCooldown;
         numBulletsInput.value = settings.numBullets;
         bulletSpeedInput.value = settings.bulletSpeed;
+        numLivesInput.value = settings.numLives;
         document.getElementById('bouncyWalls').checked = settings.bouncyWalls;
 
         // Key Mappings
@@ -256,12 +269,8 @@
 
         // Stop All Audio
         function stopAllAudio() {
-            backgroundMusic.pause();
-            backgroundMusic.currentTime = 0;
-            explosionSound.pause();
-            explosionSound.currentTime = 0;
-            clickSound.pause();
-            clickSound.currentTime = 0;
+            document.getElementById('backgroundMusic').pause();
+            document.getElementById('backgroundMusic').currentTime = 0;
             players.forEach(player => {
                 if (player.engineSound) {
                     player.engineSound.pause();
@@ -279,7 +288,7 @@
             difficultyOptions.style.display = 'none';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         survivalModeButton.addEventListener('click', () => {
             gameType = 'survival';
@@ -289,7 +298,7 @@
             difficultyOptions.style.display = 'block';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         coinsModeButton.addEventListener('click', () => {
             gameType = 'coins';
@@ -299,7 +308,7 @@
             coinOptions.style.display = 'block';
             difficultyOptions.style.display = 'none';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         pvpModeButton.style.backgroundColor = 'yellow';
 
@@ -310,7 +319,7 @@
             twoPlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         twoPlayerButton.addEventListener('click', () => {
             gameMode = 'twoPlayer';
@@ -318,7 +327,7 @@
             singlePlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         threePlayerButton.addEventListener('click', () => {
             gameMode = 'threePlayer';
@@ -326,7 +335,7 @@
             singlePlayerButton.style.backgroundColor = '';
             twoPlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         singlePlayerButton.style.backgroundColor = 'yellow';
 
@@ -337,7 +346,7 @@
             mediumButton.style.backgroundColor = '';
             hardButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         mediumButton.addEventListener('click', () => {
             difficulty = 'medium';
@@ -345,7 +354,7 @@
             easyButton.style.backgroundColor = '';
             hardButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         hardButton.addEventListener('click', () => {
             difficulty = 'hard';
@@ -353,7 +362,7 @@
             easyButton.style.backgroundColor = '';
             mediumButton.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         easyButton.style.backgroundColor = 'yellow';
 
@@ -364,7 +373,7 @@
             coins10Button.style.backgroundColor = '';
             coins25Button.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         coins10Button.addEventListener('click', () => {
             coinQuantity = 10;
@@ -372,7 +381,7 @@
             coins5Button.style.backgroundColor = '';
             coins25Button.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         coins25Button.addEventListener('click', () => {
             coinQuantity = 25;
@@ -380,7 +389,7 @@
             coins5Button.style.backgroundColor = '';
             coins10Button.style.backgroundColor = '';
             updateHighScoreDisplay();
-            clickSound.play();
+            playClickSound();
         });
         coins5Button.style.backgroundColor = 'yellow';
 
@@ -389,13 +398,13 @@
             coinAppearance = 'sequential';
             sequentialButton.style.backgroundColor = 'yellow';
             allAtOnceButton.style.backgroundColor = '';
-            clickSound.play();
+            playClickSound();
         });
         allAtOnceButton.addEventListener('click', () => {
             coinAppearance = 'all';
             allAtOnceButton.style.backgroundColor = 'yellow';
             sequentialButton.style.backgroundColor = '';
-            clickSound.play();
+            playClickSound();
         });
         allAtOnceButton.style.backgroundColor = 'yellow';
 
@@ -403,7 +412,7 @@
         settingsButton.addEventListener('click', () => {
             menuDiv.style.display = 'none';
             settingsMenuDiv.style.display = 'block';
-            clickSound.play();
+            playClickSound();
         });
 
         // Save Settings
@@ -419,15 +428,16 @@
             settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
             settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
             settings.bouncyWalls = document.getElementById('bouncyWalls').checked;
+            settings.numLives = parseInt(numLivesInput.value);
             localStorage.setItem('settings', JSON.stringify(settings));
-            clickSound.play();
+            playClickSound();
         });
 
         // Back from Settings
         backFromSettingsButton.addEventListener('click', () => {
             settingsMenuDiv.style.display = 'none';
             menuDiv.style.display = 'block';
-            clickSound.play();
+            playClickSound();
         });
 
         // Start Round
@@ -438,15 +448,15 @@
             roundEndDiv.style.display = 'none';
             settingsMenuDiv.style.display = 'none';
             canvas.style.display = 'block';
-            backgroundMusic.play();
-            clickSound.play();
+            document.getElementById('backgroundMusic').play();
+            playClickSound();
         });
 
         // Back to Menu
         backToMenuButton.addEventListener('click', () => {
             stopAllAudio();
             location.reload();
-            clickSound.play();
+            playClickSound();
         });
 
         // Play Again
@@ -455,8 +465,8 @@
             gameState = 'playing';
             roundEndDiv.style.display = 'none';
             canvas.style.display = 'block';
-            backgroundMusic.play();
-            clickSound.play();
+            document.getElementById('backgroundMusic').play();
+            playClickSound();
         });
 
         // Keyboard Input
@@ -478,8 +488,8 @@
                 gameState = 'playing';
                 roundEndDiv.style.display = 'none';
                 canvas.style.display = 'block';
-                backgroundMusic.play();
-                clickSound.play();
+                document.getElementById('backgroundMusic').play();
+                playClickSound();
             }
         });
         window.addEventListener('keyup', (e) => {
@@ -514,7 +524,11 @@
                 this.engineSound = new Audio('engine.mp3');
                 this.engineSound.loop = true;
                 this.alive = true;
+                this.lives = settings.numLives;
                 this.coinCount = 0;
+                this.immune = false;
+                this.immunityTimer = 0;
+                this.blinkTimer = 0;
             }
             update(delta) {
                 if (!this.alive) return;
@@ -552,6 +566,12 @@
                     if (this.position.x > canvas.width) this.position.x -= canvas.width;
                     if (this.position.y < 0) this.position.y += canvas.height;
                     if (this.position.y > canvas.height) this.position.y -= canvas.height;
+                }
+
+                if (this.immune) {
+                    this.immunityTimer -= delta;
+                    this.blinkTimer += delta;
+                    if (this.immunityTimer <= 0) this.immune = false;
                 }
 
                 if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
@@ -595,6 +615,7 @@
             }
             draw(ctx) {
                 if (!this.alive) return;
+                if (this.immune && this.blinkTimer % 0.1 > 0.05) return; // Blink every 0.1s
                 ctx.save();
                 ctx.translate(this.position.x, this.position.y);
                 ctx.rotate(this.angle);
@@ -691,7 +712,6 @@
             } else if (gameType === 'survival') {
                 highScoreSpan.textContent = highScores.survival[gameMode]?.[difficulty] || 0;
             } else if (gameType === 'coins' && gameMode === 'single') {
-                // Ensure highScores.coins.single exists
                 if (!highScores.coins) highScores.coins = {};
                 if (!highScores.coins.single) highScores.coins.single = { '5': Infinity, '10': Infinity, '25': Infinity };
                 const bestTime = highScores.coins.single[String(coinQuantity)] ?? Infinity;
@@ -828,7 +848,6 @@
                                     }
                                     if (collectedCoins === coinQuantity) {
                                         gameOver = true;
-                                        console.log("All coins collected, game over triggered");
                                     }
                                 }
                             });
@@ -837,12 +856,19 @@
 
                     if (gameType !== 'coins') {
                         players.forEach((player, index) => {
-                            if (!player.alive) return;
+                            if (!player.alive || player.immune) return;
                             hazards.forEach(hazard => {
                                 if (distance(player.position, hazard.position) < player.collisionRadius + hazard.size / 2) {
-                                    player.alive = false;
+                                    player.lives--;
                                     explosions.push(new Explosion(player.position.x, player.position.y));
-                                    explosionSound.play();
+                                    if (player.lives <= 0) {
+                                        player.alive = false;
+                                        playExplosionSound();
+                                    } else {
+                                        playDamageSound();
+                                        player.immune = true;
+                                        player.immunityTimer = 1; // 1 second immunity
+                                    }
                                 }
                             });
                         });
@@ -897,7 +923,6 @@
                         } else if (gameType === 'coins') {
                             if (gameMode === 'single') {
                                 const timeStr = gameTime.toFixed(1);
-                                // Ensure highScores.coins and highScores.coins.single exist
                                 if (!highScores.coins) highScores.coins = {};
                                 if (!highScores.coins.single) highScores.coins.single = { '5': Infinity, '10': Infinity, '25': Infinity };
                                 const currentBest = highScores.coins.single[String(coinQuantity)] ?? Infinity;
@@ -940,23 +965,21 @@
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
                 if (gameType === 'pvp' && gameMode === 'single') {
-                    ctx.fillText(`Shots: ${shotCount}`, 10, 30);
+                    ctx.fillText(`Shots: ${shotCount} | Lives: ${players[0].lives}`, 10, 30);
                 } else if (gameType === 'survival') {
-                    ctx.fillText(`Time: ${survivalTime.toFixed(1)}s`, 10, 30);
+                    ctx.fillText(`Time: ${survivalTime.toFixed(1)}s | Lives: ${players[0].lives}`, 10, 30);
                 } else if (gameType === 'coins') {
                     if (gameMode === 'single') {
-                        ctx.fillText(`Time: ${gameTime.toFixed(1)} s`, 10, 30);
+                        ctx.fillText(`Time: ${gameTime.toFixed(1)} s | Lives: ${players[0].lives}`, 10, 30);
                     } else {
                         players.forEach((player, index) => {
-                            ctx.fillText(`Player ${index + 1}: ${player.coinCount} coins`, 10 + index * 150, 30);
+                            ctx.fillText(`Player ${index + 1}: ${player.coinCount} coins | Lives: ${player.lives}`, 10 + index * 150, 30);
                         });
                     }
                 } else {
-                    ctx.fillText(`Player 1`, 10, 30);
-                    ctx.fillText(`Player 2`, canvas.width - 100, 30);
-                    if (gameMode === 'threePlayer') {
-                        ctx.fillText(`Player 3`, canvas.width / 2 - 50, 30);
-                    }
+                    players.forEach((player, index) => {
+                        ctx.fillText(`Player ${index + 1} | Lives: ${player.lives}`, 10 + index * 150, 30);
+                    });
                 }
             }
 
