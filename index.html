@@ -178,10 +178,17 @@
 
         // Audio Elements
         const backgroundMusic = document.getElementById('backgroundMusic');
-        const laserSound = new Audio('laser.mp3');
         const explosionSound = new Audio('explosion.mp3');
         const clickSound = new Audio('click.mp3');
-        const coinSound = new Audio('coin.mp3');
+
+        function playLaserSound() {
+            const sound = new Audio('laser.mp3');
+            sound.play();
+        }
+        function playCoinSound() {
+            const sound = new Audio('coin.mp3');
+            sound.play();
+        }
 
         // Game State Variables
         let gameState = 'menu';
@@ -251,14 +258,10 @@
         function stopAllAudio() {
             backgroundMusic.pause();
             backgroundMusic.currentTime = 0;
-            laserSound.pause();
-            laserSound.currentTime = 0;
             explosionSound.pause();
             explosionSound.currentTime = 0;
             clickSound.pause();
             clickSound.currentTime = 0;
-            coinSound.pause();
-            coinSound.currentTime = 0;
             players.forEach(player => {
                 if (player.engineSound) {
                     player.engineSound.pause();
@@ -585,7 +588,7 @@
                     }
 
                     this.shootCooldown = this.shootCooldownTime;
-                    laserSound.play();
+                    playLaserSound();
                     if (gameMode === 'single') shotCount++;
                 }
                 if (this.shootCooldown > 0) this.shootCooldown -= delta;
@@ -818,7 +821,7 @@
                                     player.coinCount++;
                                     coins.splice(index, 1);
                                     collectedCoins++;
-                                    coinSound.play();
+                                    playCoinSound();
                                     if (coinAppearance === 'sequential' && collectedCoins < coinQuantity) {
                                         const nextCoin = new Coin(coinPositions[collectedCoins].x, coinPositions[collectedCoins].y);
                                         coins.push(nextCoin);
