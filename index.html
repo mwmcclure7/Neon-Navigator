@@ -97,6 +97,7 @@
         <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
         <label for="bulletSpeed">Bullet Speed (px/s): </label>
         <input type="number" id="bulletSpeed" step="10" min="50" value="200"><br>
+        <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
@@ -197,10 +198,11 @@
             size: 20,
             colorPlayer1: '#ffffff',
             colorPlayer2: '#ffff00',
-            colorPlayer3: '#00ff00',
+            colorPlayer3: '#00ffff',
             shootCooldown: 0.5,
             numBullets: 1,
-            bulletSpeed: 200
+            bulletSpeed: 300,
+            bouncyWalls: false
         };
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
@@ -215,7 +217,8 @@
         shootCooldownInput.value = settings.shootCooldown;
         numBulletsInput.value = settings.numBullets;
         bulletSpeedInput.value = settings.bulletSpeed;
-
+        document.getElementById('bouncyWalls').checked = settings.bouncyWalls;
+        
         // Key mappings
         const keysPlayer1 = { up: false, left: false, right: false, shoot: false };
         const keysPlayer2 = { up: false, left: false, right: false, shoot: false };
@@ -330,6 +333,7 @@
             settings.shootCooldown = parseFloat(shootCooldownInput.value);
             settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
             settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
+            settings.bouncyWalls = document.getElementById('bouncyWalls').checked;
             localStorage.setItem('settings', JSON.stringify(settings));
             clickSound.play();
         });
@@ -440,10 +444,29 @@
                 }
                 this.position.x += this.velocity.x * delta;
                 this.position.y += this.velocity.y * delta;
-                if (this.position.x < 0) this.position.x += canvas.width;
-                if (this.position.x > canvas.width) this.position.x -= canvas.width;
-                if (this.position.y < 0) this.position.y += canvas.height;
-                if (this.position.y > canvas.height) this.position.y -= canvas.height;
+                if (settings.bouncyWalls) {
+                    if (this.position.x < this.collisionRadius) {
+                        this.position.x = this.collisionRadius;
+                        this.velocity.x = -this.velocity.x;
+                    }
+                    if (this.position.x > canvas.width - this.collisionRadius) {
+                        this.position.x = canvas.width - this.collisionRadius;
+                        this.velocity.x = -this.velocity.x;
+                    }
+                    if (this.position.y < this.collisionRadius) {
+                        this.position.y = this.collisionRadius;
+                        this.velocity.y = -this.velocity.y;
+                    }
+                    if (this.position.y > canvas.height - this.collisionRadius) {
+                        this.position.y = canvas.height - this.collisionRadius;
+                        this.velocity.y = -this.velocity.y;
+                    }
+                } else {
+                    if (this.position.x < 0) this.position.x += canvas.width;
+                    if (this.position.x > canvas.width) this.position.x -= canvas.width;
+                    if (this.position.y < 0) this.position.y += canvas.height;
+                    if (this.position.y > canvas.height) this.position.y -= canvas.height;
+                }
 
                 if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
                     const numBullets = settings.numBullets;
