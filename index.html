@@ -113,6 +113,12 @@
         <label for="numLives">Number of Lives: </label>
         <input type="number" id="numLives" step="1" min="1" max="99" value="1"><br>
         <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
+        <input type="checkbox" id="enablePortals" checked> <label for="enablePortals">Enable Portals</label><br>
+        <label for="portalSize">Portal Size: </label>
+        <input type="number" id="portalSize" step="1" min="10" value="30"><br>
+        <input type="checkbox" id="sharedPortals" checked> <label for="sharedPortals">Allow Shared Portals</label><br>
+        <label for="portalSpawnDelay">Portal Spawn Delay (s): </label>
+        <input type="number" id="portalSpawnDelay" step="0.1" min="0" value="0.2"><br>
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
@@ -178,6 +184,10 @@
         const numBulletsInput = document.getElementById('numBullets');
         const bulletSpeedInput = document.getElementById('bulletSpeed');
         const numLivesInput = document.getElementById('numLives');
+        const enablePortalsInput = document.getElementById('enablePortals');
+        const portalSizeInput = document.getElementById('portalSize');
+        const sharedPortalsInput = document.getElementById('sharedPortals');
+        const portalSpawnDelayInput = document.getElementById('portalSpawnDelay');
 
         // Audio Functions
         function playLaserSound() {
@@ -200,6 +210,10 @@
             const sound = new Audio('damage.mp3');
             sound.play();
         }
+        function playTeleportSound() {
+            const sound = new Audio('teleport.mp3');
+            sound.play();
+        }
 
         // Game State Variables
         let gameState = 'menu';
@@ -218,6 +232,7 @@
         let coins = [];
         let coinPositions = [];
         let explosions = [];
+        let portals = [];
         let shotCount = 0;
         let survivalTime = 0;
         let gameTime = 0;
@@ -243,7 +258,11 @@
             numBullets: 1,
             bulletSpeed: 300,
             bouncyWalls: false,
-            numLives: 1
+            numLives: 1,
+            enablePortals: true,
+            portalSize: 50,
+            sharedPortals: false,
+            portalSpawnDelay: 0.2
         };
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
@@ -260,12 +279,16 @@
         numBulletsInput.value = settings.numBullets;
         bulletSpeedInput.value = settings.bulletSpeed;
         numLivesInput.value = settings.numLives;
+        enablePortalsInput.checked = settings.enablePortals;
+        portalSizeInput.value = settings.portalSize;
+        sharedPortalsInput.checked = settings.sharedPortals;
+        portalSpawnDelayInput.value = settings.portalSpawnDelay;
         document.getElementById('bouncyWalls').checked = settings.bouncyWalls;
 
         // Key Mappings
-        const keysPlayer1 = { up: false, left: false, right: false, shoot: false };
-        const keysPlayer2 = { up: false, left: false, right: false, shoot: false };
-        const keysPlayer3 = { up: false, left: false, right: false, shoot: false };
+        const keysPlayer1 = { up: false, left: false, right: false, shoot: false, canSpawnPortal: true };
+        const keysPlayer2 = { up: false, left: false, right: false, shoot: false, canSpawnPortal: true };
+        const keysPlayer3 = { up: false, left: false, right: false, shoot: false, canSpawnPortal: true };
 
         // Stop All Audio
         function stopAllAudio() {
@@ -429,6 +452,10 @@
             settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
             settings.bouncyWalls = document.getElementById('bouncyWalls').checked;
             settings.numLives = parseInt(numLivesInput.value);
+            settings.enablePortals = enablePortalsInput.checked;
+            settings.portalSize = parseInt(portalSizeInput.value);
+            settings.sharedPortals = sharedPortalsInput.checked;
+            settings.portalSpawnDelay = parseFloat(portalSpawnDelayInput.value);
             localStorage.setItem('settings', JSON.stringify(settings));
             playClickSound();
         });
@@ -494,16 +521,16 @@
         });
         window.addEventListener('keyup', (e) => {
             if (e.key === 'w') keysPlayer1.up = false;
-            if (e.key === 'a') keysPlayer1.left = false;
-            if (e.key === 'd') keysPlayer1.right = false;
+            if (e.key === 'a') { keysPlayer1.left = false; keysPlayer1.canSpawnPortal = true; }
+            if (e.key === 'd') { keysPlayer1.right = false; keysPlayer1.canSpawnPortal = true; }
             if (e.key === 's') keysPlayer1.shoot = false;
             if (e.key === 'ArrowUp') keysPlayer2.up = false;
-            if (e.key === 'ArrowLeft') keysPlayer2.left = false;
-            if (e.key === 'ArrowRight') keysPlayer2.right = false;
+            if (e.key === 'ArrowLeft') { keysPlayer2.left = false; keysPlayer2.canSpawnPortal = true; }
+            if (e.key === 'ArrowRight') { keysPlayer2.right = false; keysPlayer2.canSpawnPortal = true; }
             if (e.key === 'ArrowDown') keysPlayer2.shoot = false;
             if (e.key === 'y') keysPlayer3.up = false;
-            if (e.key === 'g') keysPlayer3.left = false;
-            if (e.key === 'j') keysPlayer3.right = false;
+            if (e.key === 'g') { keysPlayer3.left = false; keysPlayer3.canSpawnPortal = true; }
+            if (e.key === 'j') { keysPlayer3.right = false; keysPlayer3.canSpawnPortal = true; }
             if (e.key === 'h') keysPlayer3.shoot = false;
         });
 
@@ -529,6 +556,9 @@
                 this.immune = false;
                 this.immunityTimer = 0;
                 this.blinkTimer = 0;
+                this.portals = [];
+                this.teleportCooldown = 0;
+                this.portalHoldTime = 0;
             }
             update(delta) {
                 if (!this.alive) return;
@@ -544,6 +574,19 @@
                 }
                 this.position.x += this.velocity.x * delta;
                 this.position.y += this.velocity.y * delta;
+
+                // Portal spawning logic with delay
+                if (settings.enablePortals && this.keys.left && this.keys.right && this.keys.canSpawnPortal) {
+                    this.portalHoldTime += delta;
+                    if (this.portalHoldTime >= settings.portalSpawnDelay) {
+                        this.spawnPortal();
+                        this.keys.canSpawnPortal = false;
+                        this.portalHoldTime = 0;
+                    }
+                } else {
+                    this.portalHoldTime = 0;
+                }
+
                 if (settings.bouncyWalls) {
                     if (this.position.x < this.collisionRadius) {
                         this.position.x = this.collisionRadius;
@@ -572,6 +615,10 @@
                     this.immunityTimer -= delta;
                     this.blinkTimer += delta;
                     if (this.immunityTimer <= 0) this.immune = false;
+                }
+
+                if (this.teleportCooldown > 0) {
+                    this.teleportCooldown -= delta;
                 }
 
                 if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
@@ -613,9 +660,23 @@
                 }
                 if (this.shootCooldown > 0) this.shootCooldown -= delta;
             }
+
+            spawnPortal() {
+                if (this.portals.length >= 2) {
+                    const removedPortal = this.portals.shift();
+                    portals.splice(portals.indexOf(removedPortal), 1);
+                }
+                if (this.portals.length === 1) {
+                    this.portals[0].isNew = false; // Mark existing portal as old
+                }
+                const newPortal = new Portal(this.position.x, this.position.y, this.color, this);
+                this.portals.push(newPortal);
+                portals.push(newPortal);
+            }
+
             draw(ctx) {
                 if (!this.alive) return;
-                if (this.immune && this.blinkTimer % 0.1 > 0.05) return; // Blink every 0.1s
+                if (this.immune && this.blinkTimer % 0.1 > 0.05) return;
                 ctx.save();
                 ctx.translate(this.position.x, this.position.y);
                 ctx.rotate(this.angle);
@@ -636,6 +697,29 @@
                     ctx.fill();
                 }
                 ctx.restore();
+            }
+        }
+
+        // Portal Class
+        class Portal {
+            constructor(x, y, color, owner) {
+                this.position = { x, y };
+                this.size = settings.portalSize;
+                this.color = color;
+                this.owner = owner;
+                this.isNew = true; // Track if this is the newer portal
+            }
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.size / 2, 0, Math.PI * 2);
+                if (this.isNew) {
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                } else {
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
             }
         }
 
@@ -761,6 +845,7 @@
             coins = [];
             coinPositions = [];
             explosions = [];
+            portals = [];
             shotCount = 0;
             survivalTime = 0;
             gameTime = 0;
@@ -854,6 +939,27 @@
                         });
                     }
 
+                    // Portal teleportation logic
+                    if (settings.enablePortals) {
+                        players.forEach(player => {
+                            if (!player.alive || player.teleportCooldown > 0) return;
+                            const playerPortals = settings.sharedPortals ? portals : player.portals;
+                            if (playerPortals.length === 2) {
+                                for (let i = 0; i < playerPortals.length; i++) {
+                                    const portal = playerPortals[i];
+                                    if (distance(player.position, portal.position) < player.collisionRadius + portal.size / 2) {
+                                        const otherPortal = playerPortals[1 - i];
+                                        player.position.x = otherPortal.position.x;
+                                        player.position.y = otherPortal.position.y;
+                                        player.teleportCooldown = 1; // 1-second cooldown
+                                        playTeleportSound();
+                                        break; // Exit loop after teleporting
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     if (gameType !== 'coins') {
                         players.forEach((player, index) => {
                             if (!player.alive || player.immune) return;
@@ -867,7 +973,10 @@
                                     } else {
                                         playDamageSound();
                                         player.immune = true;
-                                        player.immunityTimer = 1; // 1 second immunity
+                                        player.immunityTimer = 1;
+                                        player.position.x = canvas.width / 2;
+                                        player.position.y = canvas.height / 2;
+                                        player.velocity = { x: 0, y: 0 };
                                     }
                                 }
                             });
@@ -959,6 +1068,9 @@
                     hazards.forEach(hazard => hazard.draw(ctx));
                 } else {
                     coins.forEach(coin => coin.draw(ctx));
+                }
+                if (settings.enablePortals) {
+                    portals.forEach(portal => portal.draw(ctx));
                 }
                 explosions.forEach(explosion => explosion.draw(ctx));
 
