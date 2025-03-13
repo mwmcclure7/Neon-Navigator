@@ -84,6 +84,7 @@
             <button id="allAtOnce">All at once</button>
         </p>
         <button id="start">Start Round</button>
+        <button id="instructionsButton">Instructions</button>
         <button id="settings">Settings</button>
         <p style="margin-top: 75px;">Learn how to make games like this at <a href="https://www.softwaresensei.ai" target="_blank" rel="noopener noreferrer">Sensei.AI</a></p>
         <img src="Sensei.AI Logo.svg" alt="Sensei.AI Logo" width="200px">
@@ -122,11 +123,28 @@
         <button id="saveSettings">Save Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
+    <div id="instructions" style="display: none;">
+        <h2>Instructions</h2>
+        <p><strong>Controls:</strong></p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Player 1: W (thrust), A/D (rotate), S (shoot)</li>
+            <li>Player 2: Arrow Up (thrust), Left/Right (rotate), Down (shoot)</li>
+            <li>Player 3: Y (thrust), G/J (rotate), H (shoot)</li>
+            <li>Portals: Hold rotate keys (A+D, Left+Right, G+J)</li>
+        </ul>
+        <p><strong>Game Modes:</strong></p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>PvP: Last player standing wins</li>
+            <li>Survival: Dodge hazards as long as possible</li>
+            <li>Coins: Collect all coins fastest</li>
+        </ul>
+        <button id="backFromInstructions">Back</button>
+    </div>
     <div id="roundEnd" style="display: none;">
         <h2>Round Over</h2>
         <p id="result"></p>
         <button id="backToMenu">Back to Menu</button>
-        <button id="playAgain">Play Again</button>
+        <button id="playAgain">Play Again (R)</button>
     </div>
     <canvas id="gameCanvas"></canvas>
     <audio id="backgroundMusic" loop>
@@ -171,6 +189,8 @@
         const coins25Button = document.getElementById('coins25');
         const sequentialButton = document.getElementById('sequential');
         const allAtOnceButton = document.getElementById('allAtOnce');
+        const instructionsDiv = document.getElementById('instructions');
+        const backFromInstructionsButton = document.getElementById('backFromInstructions');
 
         // Settings Inputs
         const rotationSpeedInput = document.getElementById('rotationSpeed');
@@ -463,6 +483,20 @@
         // Back from Settings
         backFromSettingsButton.addEventListener('click', () => {
             settingsMenuDiv.style.display = 'none';
+            menuDiv.style.display = 'block';
+            playClickSound();
+        });
+
+        // Instructions Button
+        instructionsButton.addEventListener('click', () => {
+            menuDiv.style.display = 'none';
+            instructionsDiv.style.display = 'block';
+            playClickSound();
+        });
+
+        // Back from Instructions
+        backFromInstructionsButton.addEventListener('click', () => {
+            instructionsDiv.style.display = 'none';
             menuDiv.style.display = 'block';
             playClickSound();
         });
