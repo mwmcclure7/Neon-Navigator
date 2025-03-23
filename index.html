@@ -121,6 +121,7 @@
         <label for="portalSpawnDelay">Portal Spawn Delay (s): </label>
         <input type="number" id="portalSpawnDelay" step="0.1" min="0" value="0.2"><br>
         <button id="saveSettings">Save Settings</button>
+        <button id="resetSettings">Reset Settings</button>
         <button id="backFromSettings">Back</button>
     </div>
     <div id="instructions" style="display: none;">
@@ -168,6 +169,7 @@
         const highScoreSpan = document.getElementById('highScore');
         const startButton = document.getElementById('start');
         const settingsButton = document.getElementById('settings');
+        const resetSettingsButton = document.getElementById('resetSettings');
         const saveSettingsButton = document.getElementById('saveSettings');
         const backFromSettingsButton = document.getElementById('backFromSettings');
         const resultP = document.getElementById('result');
@@ -455,6 +457,27 @@
         settingsButton.addEventListener('click', () => {
             menuDiv.style.display = 'none';
             settingsMenuDiv.style.display = 'block';
+            playClickSound();
+        });
+
+        // Reset Settings
+        resetSettingsButton.addEventListener('click', () => {
+            settings.rotationSpeed = 6.28;
+            settings.acceleration = 1000;
+            settings.size = 20;
+            settings.bulletCoinSize = 10;
+            settings.colorPlayer1 = '#ffffff';
+            settings.colorPlayer2 = '#ffff00';
+            settings.colorPlayer3 = '#00ff00';
+            settings.shootCooldown = 0.5;
+            settings.numBullets = 1;
+            settings.bulletSpeed = 200;
+            settings.numLives = 1;
+            settings.bouncyWalls = true;
+            settings.enablePortals = true;
+            settings.portalSize = 30;
+            settings.sharedPortals = true;
+            settings.portalSpawnDelay = 0.2;
             playClickSound();
         });
 
