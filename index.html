@@ -276,7 +276,7 @@
             colorPlayer1: '#ffffff',
             colorPlayer2: '#ffff00',
             colorPlayer3: '#00ffff',
-            shootCooldown: 0.5,
+            shootCooldown: 0.3,
             numBullets: 1,
             bulletSpeed: 300,
             bouncyWalls: false,
@@ -284,7 +284,7 @@
             enablePortals: true,
             portalSize: 50,
             sharedPortals: false,
-            portalSpawnDelay: 0.2
+            portalSpawnDelay: 0.1
         };
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
@@ -462,22 +462,30 @@
 
         // Reset Settings
         resetSettingsButton.addEventListener('click', () => {
-            settings.rotationSpeed = 6.28;
-            settings.acceleration = 1000;
-            settings.size = 20;
-            settings.bulletCoinSize = 10;
-            settings.colorPlayer1 = '#ffffff';
-            settings.colorPlayer2 = '#ffff00';
-            settings.colorPlayer3 = '#00ff00';
-            settings.shootCooldown = 0.5;
-            settings.numBullets = 1;
-            settings.bulletSpeed = 200;
-            settings.numLives = 1;
-            settings.bouncyWalls = true;
-            settings.enablePortals = true;
-            settings.portalSize = 30;
-            settings.sharedPortals = true;
-            settings.portalSpawnDelay = 0.2;
+            // Reset settings object to default values
+            settings = { ...defaultSettings };
+            
+            // Update all input elements to reflect default values
+            rotationSpeedInput.value = defaultSettings.rotationSpeed;
+            accelerationInput.value = defaultSettings.acceleration;
+            sizeInput.value = defaultSettings.size;
+            bulletCoinSizeInput.value = defaultSettings.bulletCoinSize;
+            colorPlayer1Input.value = defaultSettings.colorPlayer1;
+            colorPlayer2Input.value = defaultSettings.colorPlayer2;
+            colorPlayer3Input.value = defaultSettings.colorPlayer3;
+            shootCooldownInput.value = defaultSettings.shootCooldown;
+            numBulletsInput.value = defaultSettings.numBullets;
+            bulletSpeedInput.value = defaultSettings.bulletSpeed;
+            numLivesInput.value = defaultSettings.numLives;
+            document.getElementById('bouncyWalls').checked = defaultSettings.bouncyWalls;
+            enablePortalsInput.checked = defaultSettings.enablePortals;
+            portalSizeInput.value = defaultSettings.portalSize;
+            sharedPortalsInput.checked = defaultSettings.sharedPortals;
+            portalSpawnDelayInput.value = defaultSettings.portalSpawnDelay;
+
+            // Save the reset settings to localStorage
+            localStorage.setItem('settings', JSON.stringify(settings));
+            
             playClickSound();
         });
 
@@ -1000,17 +1008,35 @@
                     if (settings.enablePortals) {
                         players.forEach(player => {
                             if (!player.alive || player.teleportCooldown > 0) return;
-                            const playerPortals = settings.sharedPortals ? portals : player.portals;
-                            if (playerPortals.length === 2) {
-                                for (let i = 0; i < playerPortals.length; i++) {
-                                    const portal = playerPortals[i];
-                                    if (distance(player.position, portal.position) < player.collisionRadius + portal.size / 2) {
-                                        const otherPortal = playerPortals[1 - i];
-                                        player.position.x = otherPortal.position.x;
-                                        player.position.y = otherPortal.position.y;
+                            
+                            const availablePortals = settings.sharedPortals ? portals : player.portals;
+                            
+                            // Find all portals that could be entry points
+                            for (let entryIndex = 0; entryIndex < availablePortals.length; entryIndex++) {
+                                const entryPortal = availablePortals[entryIndex];
+                                if (distance(player.position, entryPortal.position) < player.collisionRadius + entryPortal.size / 2) {
+                                    // Find the corresponding exit portal
+                                    let exitPortal;
+                                    
+                                    if (settings.sharedPortals) {
+                                        // In shared mode, find the paired portal (opposite isNew status) from the same owner
+                                        exitPortal = portals.find(p => 
+                                            p.owner === entryPortal.owner && 
+                                            p.isNew !== entryPortal.isNew &&
+                                            p !== entryPortal
+                                        );
+                                    } else {
+                                        // In non-shared mode, use the player's other portal
+                                        exitPortal = player.portals.find(p => p !== entryPortal);
+                                    }
+
+                                    if (exitPortal) {
+                                        // Teleport and set cooldown
+                                        player.position.x = exitPortal.position.x;
+                                        player.position.y = exitPortal.position.y;
                                         player.teleportCooldown = 1; // 1-second cooldown
                                         playTeleportSound();
-                                        break; // Exit loop after teleporting
+                                        break; // Exit the loop after teleporting to prevent multiple teleports
                                     }
                                 }
                             }
