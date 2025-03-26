@@ -114,7 +114,7 @@
         <label for="numLives">Number of Lives: </label>
         <input type="number" id="numLives" step="1" min="1" max="99" value="1"><br>
         <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
-        <input type="checkbox" id="enablePortals" checked> <label for="enablePortals">Enable Portals</label><br>
+        <Can you please retype the entire file?input type="checkbox" id="enablePortals" checked> <label for="enablePortals">Enable Portals</label><br>
         <label for="portalSize">Portal Size: </label>
         <input type="number" id="portalSize" step="1" min="10" value="30"><br>
         <input type="checkbox" id="sharedPortals" checked> <label for="sharedPortals">Allow Shared Portals</label><br>
@@ -191,6 +191,7 @@
         const allAtOnceButton = document.getElementById('allAtOnce');
         const instructionsDiv = document.getElementById('instructions');
         const backFromInstructionsButton = document.getElementById('backFromInstructions');
+        const instructionsButton = document.getElementById('instructionsButton');
 
         // Settings Inputs
         const rotationSpeedInput = document.getElementById('rotationSpeed');
@@ -242,6 +243,23 @@
         let difficulty = 'easy';
         let coinQuantity = 5;
         let coinAppearance = 'all';
+
+        // Load stored selections
+        let storedSelections = JSON.parse(localStorage.getItem('gameSelections')) || {
+            gameMode: 'single',
+            gameType: 'pvp',
+            difficulty: 'easy',
+            coinQuantity: 5,
+            coinAppearance: 'all'
+        };
+
+        // Apply stored selections
+        gameMode = storedSelections.gameMode;
+        gameType = storedSelections.gameType;
+        difficulty = storedSelections.difficulty;
+        coinQuantity = storedSelections.coinQuantity;
+        coinAppearance = storedSelections.coinAppearance;
+
         let highScores = JSON.parse(localStorage.getItem('highScores')) || {
             survival: { single: { easy: 0, medium: 0, hard: 0 }, twoPlayer: { easy: 0, medium: 0, hard: 0 }, threePlayer: { easy: 0, medium: 0, hard: 0 } },
             pvp: { single: 0, twoPlayer: 0, threePlayer: 0 },
@@ -322,6 +340,47 @@
             });
         }
 
+        // Function to save selections
+        function saveSelections() {
+            const selections = {
+                gameMode,
+                gameType,
+                difficulty,
+                coinQuantity,
+                coinAppearance
+            };
+            localStorage.setItem('gameSelections', JSON.stringify(selections));
+        }
+
+        // Update UI based on stored selections
+        function initializeUISelections() {
+            pvpModeButton.style.backgroundColor = gameType === 'pvp' ? 'yellow' : '';
+            survivalModeButton.style.backgroundColor = gameType === 'survival' ? 'yellow' : '';
+            coinsModeButton.style.backgroundColor = gameType === 'coins' ? 'yellow' : '';
+            difficultyOptions.style.display = gameType === 'survival' ? 'block' : 'none';
+            coinOptions.style.display = gameType === 'coins' ? 'block' : 'none';
+
+            singlePlayerButton.style.backgroundColor = gameMode === 'single' ? 'yellow' : '';
+            twoPlayerButton.style.backgroundColor = gameMode === 'twoPlayer' ? 'yellow' : '';
+            threePlayerButton.style.backgroundColor = gameMode === 'threePlayer' ? 'yellow' : '';
+
+            easyButton.style.backgroundColor = difficulty === 'easy' ? 'yellow' : '';
+            mediumButton.style.backgroundColor = difficulty === 'medium' ? 'yellow' : '';
+            hardButton.style.backgroundColor = difficulty === 'hard' ? 'yellow' : '';
+
+            coins5Button.style.backgroundColor = coinQuantity === 5 ? 'yellow' : '';
+            coins10Button.style.backgroundColor = coinQuantity === 10 ? 'yellow' : '';
+            coins25Button.style.backgroundColor = coinQuantity === 25 ? 'yellow' : '';
+
+            sequentialButton.style.backgroundColor = coinAppearance === 'sequential' ? 'yellow' : '';
+            allAtOnceButton.style.backgroundColor = coinAppearance === 'all' ? 'yellow' : '';
+
+            updateHighScoreDisplay();
+        }
+
+        // Initialize UI selections
+        initializeUISelections();
+
         // Game Type Selection
         pvpModeButton.addEventListener('click', () => {
             gameType = 'pvp';
@@ -331,6 +390,7 @@
             difficultyOptions.style.display = 'none';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         survivalModeButton.addEventListener('click', () => {
@@ -341,6 +401,7 @@
             difficultyOptions.style.display = 'block';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         coinsModeButton.addEventListener('click', () => {
@@ -351,9 +412,9 @@
             coinOptions.style.display = 'block';
             difficultyOptions.style.display = 'none';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
-        pvpModeButton.style.backgroundColor = 'yellow';
 
         // Player Selection
         singlePlayerButton.addEventListener('click', () => {
@@ -362,6 +423,7 @@
             twoPlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         twoPlayerButton.addEventListener('click', () => {
@@ -370,6 +432,7 @@
             singlePlayerButton.style.backgroundColor = '';
             threePlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         threePlayerButton.addEventListener('click', () => {
@@ -378,9 +441,9 @@
             singlePlayerButton.style.backgroundColor = '';
             twoPlayerButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
-        singlePlayerButton.style.backgroundColor = 'yellow';
 
         // Difficulty Selection
         easyButton.addEventListener('click', () => {
@@ -389,6 +452,7 @@
             mediumButton.style.backgroundColor = '';
             hardButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         mediumButton.addEventListener('click', () => {
@@ -397,6 +461,7 @@
             easyButton.style.backgroundColor = '';
             hardButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         hardButton.addEventListener('click', () => {
@@ -405,9 +470,9 @@
             easyButton.style.backgroundColor = '';
             mediumButton.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
-        easyButton.style.backgroundColor = 'yellow';
 
         // Coin Quantity Selection
         coins5Button.addEventListener('click', () => {
@@ -416,6 +481,7 @@
             coins10Button.style.backgroundColor = '';
             coins25Button.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         coins10Button.addEventListener('click', () => {
@@ -424,6 +490,7 @@
             coins5Button.style.backgroundColor = '';
             coins25Button.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
         coins25Button.addEventListener('click', () => {
@@ -432,24 +499,25 @@
             coins5Button.style.backgroundColor = '';
             coins10Button.style.backgroundColor = '';
             updateHighScoreDisplay();
+            saveSelections();
             playClickSound();
         });
-        coins5Button.style.backgroundColor = 'yellow';
 
         // Coin Appearance Selection
         sequentialButton.addEventListener('click', () => {
             coinAppearance = 'sequential';
             sequentialButton.style.backgroundColor = 'yellow';
             allAtOnceButton.style.backgroundColor = '';
+            saveSelections();
             playClickSound();
         });
         allAtOnceButton.addEventListener('click', () => {
             coinAppearance = 'all';
             allAtOnceButton.style.backgroundColor = 'yellow';
             sequentialButton.style.backgroundColor = '';
+            saveSelections();
             playClickSound();
         });
-        allAtOnceButton.style.backgroundColor = 'yellow';
 
         // Settings Button
         settingsButton.addEventListener('click', () => {
@@ -460,10 +528,7 @@
 
         // Reset Settings
         resetSettingsButton.addEventListener('click', () => {
-            // Reset settings object to default values
             settings = { ...defaultSettings };
-            
-            // Update all input elements to reflect default values
             rotationSpeedInput.value = defaultSettings.rotationSpeed;
             accelerationInput.value = defaultSettings.acceleration;
             sizeInput.value = defaultSettings.size;
@@ -480,14 +545,11 @@
             portalSizeInput.value = defaultSettings.portalSize;
             sharedPortalsInput.checked = defaultSettings.sharedPortals;
             portalSpawnDelayInput.value = defaultSettings.portalSpawnDelay;
-
-            // Save the reset settings to localStorage
             localStorage.setItem('settings', JSON.stringify(settings));
-            
             playClickSound();
         });
 
-        // Save Settings
+        // Save Settings (now also returns to menu)
         saveSettingsButton.addEventListener('click', () => {
             settings.rotationSpeed = parseFloat(rotationSpeedInput.value);
             settings.acceleration = parseFloat(accelerationInput.value);
@@ -506,10 +568,8 @@
             settings.sharedPortals = sharedPortalsInput.checked;
             settings.portalSpawnDelay = parseFloat(portalSpawnDelayInput.value);
             localStorage.setItem('settings', JSON.stringify(settings));
-            
             settingsMenuDiv.style.display = 'none';
             menuDiv.style.display = 'block';
-            
             playClickSound();
         });
 
@@ -542,7 +602,11 @@
         // Back to Menu
         backToMenuButton.addEventListener('click', () => {
             stopAllAudio();
-            location.reload();
+            gameState = 'menu';
+            menuDiv.style.display = 'block';
+            roundEndDiv.style.display = 'none';
+            canvas.style.display = 'none';
+            initializeUISelections();
             playClickSound();
         });
 
@@ -566,7 +630,7 @@
             if (e.key === 'ArrowLeft') keysPlayer2.left = true;
             if (e.key === 'ArrowRight') keysPlayer2.right = true;
             if (e.key === 'ArrowDown' && gameType === 'pvp') keysPlayer2.shoot = true;
-            if (e.key === 'y') keysPlayer3.up = true;
+            if (e.key === 'y') keysGiftPlayer3.up = true;
             if (e.key === 'g') keysPlayer3.left = true;
             if (e.key === 'j') keysPlayer3.right = true;
             if (e.key === 'h' && gameType === 'pvp') keysPlayer3.shoot = true;
@@ -635,7 +699,6 @@
                 this.position.x += this.velocity.x * delta;
                 this.position.y += this.velocity.y * delta;
 
-                // Portal spawning logic with delay
                 if (settings.enablePortals && this.keys.left && this.keys.right && this.keys.canSpawnPortal) {
                     this.portalHoldTime += delta;
                     if (this.portalHoldTime >= settings.portalSpawnDelay) {
@@ -707,7 +770,7 @@
                             const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
                             const shootVx = Math.sin(bulletAngle) * shootSpeed;
                             const shootVy = -Math.cos(bulletAngle) * shootSpeed;
-                            const hazardVx = this.velocity.x + shootVx;
+                            const ganóhazardVx = this.velocity.x + shootVx;
                             const hazardVy = this.velocity.y + shootVy;
                             const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
                             hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
@@ -727,7 +790,7 @@
                     portals.splice(portals.indexOf(removedPortal), 1);
                 }
                 if (this.portals.length === 1) {
-                    this.portals[0].isNew = false; // Mark existing portal as old
+                    this.portals[0].isNew = false;
                 }
                 const newPortal = new Portal(this.position.x, this.position.y, this.color, this);
                 this.portals.push(newPortal);
@@ -767,7 +830,7 @@
                 this.size = settings.portalSize;
                 this.color = color;
                 this.owner = owner;
-                this.isNew = true; // Track if this is the newer portal
+                this.isNew = true;
             }
             draw(ctx) {
                 ctx.beginPath();
@@ -871,22 +934,22 @@
             const speed = Math.random() * (settings.bulletSpeed * 1.5 - settings.bulletSpeed * 0.5) + settings.bulletSpeed * 0.5;
 
             switch (edge) {
-                case 0: // Top
+                case 0:
                     x = Math.random() * canvas.width;
                     y = 0;
                     direction = { x: Math.random() * 2 - 1, y: 1 };
                     break;
-                case 1: // Right
+                case 1:
                     x = canvas.width;
                     y = Math.random() * canvas.height;
                     direction = { x: -1, y: Math.random() * 2 - 1 };
                     break;
-                case 2: // Bottom
+                case 2:
                     x = Math.random() * canvas.width;
                     y = canvas.height;
                     direction = { x: Math.random() * 2 - 1, y: -1 };
                     break;
-                case 3: // Left
+                case 3:
                     x = 0;
                     y = Math.random() * canvas.height;
                     direction = { x: 1, y: Math.random() * 2 - 1 };
@@ -999,39 +1062,29 @@
                         });
                     }
 
-                    // Portal teleportation logic
                     if (settings.enablePortals) {
                         players.forEach(player => {
                             if (!player.alive || player.teleportCooldown > 0) return;
-                            
                             const availablePortals = settings.sharedPortals ? portals : player.portals;
-                            
-                            // Find all portals that could be entry points
                             for (let entryIndex = 0; entryIndex < availablePortals.length; entryIndex++) {
                                 const entryPortal = availablePortals[entryIndex];
                                 if (distance(player.position, entryPortal.position) < player.collisionRadius + entryPortal.size / 2) {
-                                    // Find the corresponding exit portal
                                     let exitPortal;
-                                    
                                     if (settings.sharedPortals) {
-                                        // In shared mode, find the paired portal (opposite isNew status) from the same owner
                                         exitPortal = portals.find(p => 
                                             p.owner === entryPortal.owner && 
                                             p.isNew !== entryPortal.isNew &&
                                             p !== entryPortal
                                         );
                                     } else {
-                                        // In non-shared mode, use the player's other portal
                                         exitPortal = player.portals.find(p => p !== entryPortal);
                                     }
-
                                     if (exitPortal) {
-                                        // Teleport and set cooldown
                                         player.position.x = exitPortal.position.x;
                                         player.position.y = exitPortal.position.y;
-                                        player.teleportCooldown = 1; // 1-second cooldown
+                                        player.teleportCooldown = 1;
                                         playTeleportSound();
-                                        break; // Exit the loop after teleporting to prevent multiple teleports
+                                        break;
                                     }
                                 }
                             }
