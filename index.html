@@ -122,7 +122,6 @@
         <input type="number" id="portalSpawnDelay" step="0.1" min="0" value="0.2"><br>
         <button id="saveSettings">Save Settings</button>
         <button id="resetSettings">Reset Settings</button>
-        <button id="backFromSettings">Back</button>
     </div>
     <div id="instructions" style="display: none;">
         <h2>Instructions</h2>
@@ -171,7 +170,6 @@
         const settingsButton = document.getElementById('settings');
         const resetSettingsButton = document.getElementById('resetSettings');
         const saveSettingsButton = document.getElementById('saveSettings');
-        const backFromSettingsButton = document.getElementById('backFromSettings');
         const resultP = document.getElementById('result');
         const backToMenuButton = document.getElementById('backToMenu');
         const playAgainButton = document.getElementById('playAgain');
@@ -508,13 +506,10 @@
             settings.sharedPortals = sharedPortalsInput.checked;
             settings.portalSpawnDelay = parseFloat(portalSpawnDelayInput.value);
             localStorage.setItem('settings', JSON.stringify(settings));
-            playClickSound();
-        });
-
-        // Back from Settings
-        backFromSettingsButton.addEventListener('click', () => {
+            
             settingsMenuDiv.style.display = 'none';
             menuDiv.style.display = 'block';
+            
             playClickSound();
         });
 
