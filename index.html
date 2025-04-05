@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Navigator</title>
+    <title>Neon Neutralizer</title>
     <link rel="icon" href="Sensei.AI Logo.svg" type="image/svg+xml">
     <style>
         body {
@@ -24,7 +24,7 @@
         }
         #menu, #roundEnd, #settingsMenu {
             margin: 20px auto;
-            width: 600px;
+            width: 100vw;
         }
         button {
             margin: 5px;
@@ -34,7 +34,15 @@
             border-radius: 5px;
         }
         button:hover {
-            background-color: cyan;
+            background-color: #ff00ff;
+        }
+        h1 {
+            font-family: 'Bruno Ace SC', cursive;
+            font-size: 50px;
+            filter: drop-shadow(0 0 10px #a0a0ff);
+            background: linear-gradient(to top, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         a {
             color: cyan;
@@ -58,10 +66,13 @@
             display: none;
         }
     </style>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="menu">
-        <h1>Neon Navigator</h1>
+        <h1>Neon Neutralizer</h1>
         <p>High Score: <span id="highScore">0</span></p>
         <p>Game Type:
             <button id="pvpMode">PvP</button>
@@ -87,9 +98,14 @@
             <button id="sequential">Sequential</button>
             <button id="allAtOnce">All at once</button>
         </p>
-        <button id="start">Start Round</button>
-        <button id="instructionsButton">Instructions</button>
-        <button id="settings">Settings</button>
+        <p>
+            <button id="start">Start Round</button>
+            <button id="instructionsButton">Instructions</button>
+            <button id="settings">Settings</button>
+        </p>
+        <p>
+            <button onclick="toggleFullscreen()">Fullscreen</button>
+        </p>
         <p style="margin-top: 75px;">Learn how to make games like this at <a href="https://www.softwaresensei.ai" target="_blank" rel="noopener noreferrer">Sensei.AI</a></p>
         <img src="Sensei.AI Logo.svg" alt="Sensei.AI Logo" width="200px">
     </div>
@@ -156,6 +172,36 @@
     </audio>
 
     <script>
+        function toggleFullscreen() {
+            const elem = document.documentElement; // Get the root element (html)
+
+            // Check if we're currently in fullscreen mode
+            if (!document.fullscreenElement && !document.mozFullScreenElement && 
+                !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                // If not in fullscreen, request it
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.mozRequestFullScreen) { // Firefox
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { // IE/Edge
+                    elem.msRequestFullscreen();
+                }
+            } else {
+                // If already in fullscreen, exit it
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
