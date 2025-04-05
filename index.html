@@ -134,7 +134,7 @@
         <label for="numLives">Number of Lives: </label>
         <input type="number" id="numLives" step="1" min="1" max="99" value="1"><br>
         <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
-        <Can you please retype the entire file?input type="checkbox" id="enablePortals" checked> <label for="enablePortals">Enable Portals</label><br>
+        <input type="checkbox" id="enablePortals" checked> <label for="enablePortals">Enable Portals</label><br>
         <label for="portalSize">Portal Size: </label>
         <input type="number" id="portalSize" step="1" min="10" value="30"><br>
         <input type="checkbox" id="sharedPortals" checked> <label for="sharedPortals">Allow Shared Portals</label><br>
@@ -820,7 +820,7 @@
                             const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
                             const shootVx = Math.sin(bulletAngle) * shootSpeed;
                             const shootVy = -Math.cos(bulletAngle) * shootSpeed;
-                            const ganóhazardVx = this.velocity.x + shootVx;
+                            const hazardVx = this.velocity.x + shootVx;
                             const hazardVy = this.velocity.y + shootVy;
                             const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
                             hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
