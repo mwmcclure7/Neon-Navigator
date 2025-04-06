@@ -9,10 +9,10 @@
         body {
             background-color: black;
             color: white;
-            font-family: Arial, sans-serif;
             text-align: center;
             margin: 0;
             padding: 0;
+            font-family: 'Nova Square', sans-serif;
         }
         #gameCanvas {
             display: none;
@@ -20,7 +20,6 @@
             width: 100vw;
             height: 100vh;
             cursor: none;
-            
         }
         #menu, #roundEnd, #settingsMenu {
             margin: 20px auto;
@@ -31,32 +30,79 @@
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 10px;
+            background-color: transparent;
+            border: 2px solid lightgray;
+            color: lightgray;
+            transition: 0.1s;
+            font-family: 'Nova Square', sans-serif;
         }
         button:hover {
-            background-color: #ff00ff;
+            border-color: yellow;
+            background-color: #555500;
+            color: yellow;
+            box-shadow: 0 0 10px yellow;
+        }
+        button:focus {
+            border-color: cyan;
+            background-color: #007777;
+            color: cyan;
+            box-shadow: 0 0 10px cyan;
+        }
+        hr {
+            border-color: #333333;
+            width: 400px;
         }
         h1 {
-            font-family: 'Bruno Ace SC', cursive;
+            font-family: 'Bruno Ace SC', sans-serif;
             font-size: 50px;
-            filter: drop-shadow(0 0 10px #a0a0ff);
-            background: linear-gradient(to top, #ff00ff, #00ffff);
+            filter: drop-shadow(0 0 10px #a0ffa0);
+            background: linear-gradient(to top, #ffff00, #00ffff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         a {
             color: cyan;
             text-decoration: none;
+            font-family: 'Nova Square', sans-serif;
         }
         a:hover {
             color: yellow;
             text-decoration: underline;
         }
-        input[type="number"], input[type="color"] {
+        input[type="number"] {
             padding: 5px;
             font-size: 16px;
             margin: 5px;
-            border-radius: 5px;
+            border-radius: 10px;
+            border: 2px solid white;
+            color: white;
+            background: transparent;
+            width: 100px;
+            outline: none;
+            font-family: 'Nova Square', sans-serif;
+        }
+        input[type="color"] {
+            padding: 5px;
+            font-size: 16px;
+            margin: 5px;
+            border-radius: 10px;
+            border: 2px solid white;
+            color: white;
+            background: transparent;
+            outline: none;
+        }
+        input:hover {
+            border-color: yellow;
+            background-color: #555500;
+            box-shadow: 0 0 10px yellow;
+            color: yellow;
+        }
+        input:focus {
+            border-color: cyan;
+            background-color: #003333;
+            box-shadow: 0 0 10px cyan;
+            color: white;
         }
         #highScore {
             font-size: 24px;
@@ -65,49 +111,63 @@
         #difficultyOptions, #coinOptions {
             display: none;
         }
+        #logo {
+            filter: drop-shadow(0 0 10px #00ffff);
+            width: 200px;
+        }
+        #highScoreContainer {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #highScoreContainer span {
+            font-size: 24px;
+            color: cyan;
+            filter: drop-shadow(0 0 10px cyan);
+            font-weight: bold;
+        }
     </style>
 
     <!-- Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&display=swap" rel="stylesheet">
-</head>
+    <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&family=Nova+Square&display=swap" rel="stylesheet">
+
 <body>
     <div id="menu">
         <h1>Neon Neutralizer</h1>
-        <p>High Score: <span id="highScore">0</span></p>
-        <p>Game Type:
+        <p id="highScoreContainer">High Score: <span id="highScore">0</span></p>
+        <hr>
+        <p>
             <button id="pvpMode">PvP</button>
             <button id="survivalMode">Survival</button>
             <button id="coinsMode">Coins</button>
         </p>
-        <p>Players:
-            <button id="singlePlayer">Single Player</button>
-            <button id="twoPlayer">Two Player</button>
-            <button id="threePlayer">Three Player</button>
-        </p>
-        <p id="difficultyOptions">Difficulty (Survival Mode):
+        <p id="difficultyOptions">
             <button id="easy">Easy</button>
             <button id="medium">Medium</button>
             <button id="hard">Hard</button>
         </p>
-        <p id="coinOptions">Coins Quantity:
+        <p id="coinOptions">
             <button id="coins5">5</button>
             <button id="coins10">10</button>
             <button id="coins25">25</button>
             <br>
-            Coin Appearance:
             <button id="sequential">Sequential</button>
             <button id="allAtOnce">All at once</button>
         </p>
+        <hr>
         <p>
-            <button id="start">Start Round</button>
-            <button id="instructionsButton">Instructions</button>
-            <button id="settings">Settings</button>
+            <button id="singlePlayer">Single Player</button>
+            <button id="twoPlayer">Two Player</button>
+            <button id="threePlayer">Three Player</button>
         </p>
+        <hr>
+        <button id="start" style="width: 400px;">Start Round</button>
         <p>
+            <button id="instructionsButton">Help</button>
+            <button id="settings">Settings</button>
             <button onclick="toggleFullscreen()">Fullscreen</button>
         </p>
         <p style="margin-top: 75px;">Learn how to make games like this at <a href="https://www.softwaresensei.ai" target="_blank" rel="noopener noreferrer">Sensei.AI</a></p>
-        <img src="Sensei.AI Logo.svg" alt="Sensei.AI Logo" width="200px">
+        <img id="logo" src="Sensei.AI Logo.svg" alt="Sensei.AI Logo">
     </div>
     <div id="settingsMenu" style="display: none;">
         <h2>Settings</h2>
@@ -404,26 +464,68 @@
 
         // Update UI based on stored selections
         function initializeUISelections() {
-            pvpModeButton.style.backgroundColor = gameType === 'pvp' ? 'yellow' : '';
-            survivalModeButton.style.backgroundColor = gameType === 'survival' ? 'yellow' : '';
-            coinsModeButton.style.backgroundColor = gameType === 'coins' ? 'yellow' : '';
+            pvpModeButton.style.backgroundColor = gameType === 'pvp' ? '#003333' : '';
+            pvpModeButton.style.borderColor = gameType === 'pvp' ? 'cyan' : '';
+            pvpModeButton.style.color = gameType === 'pvp' ? 'cyan' : '';
+            pvpModeButton.style.boxShadow = gameType === 'pvp' ? '0 0 10px cyan' : '';
+            survivalModeButton.style.backgroundColor = gameType === 'survival' ? '#003333' : '';
+            survivalModeButton.style.borderColor = gameType === 'survival' ? 'cyan' : '';
+            survivalModeButton.style.color = gameType === 'survival' ? 'cyan' : '';
+            survivalModeButton.style.boxShadow = gameType === 'survival' ? '0 0 10px cyan' : '';
+            coinsModeButton.style.backgroundColor = gameType === 'coins' ? '#003333' : '';
+            coinsModeButton.style.borderColor = gameType === 'coins' ? 'cyan' : '';
+            coinsModeButton.style.color = gameType === 'coins' ? 'cyan' : '';
+            coinsModeButton.style.boxShadow = gameType === 'coins' ? '0 0 10px cyan' : '';
             difficultyOptions.style.display = gameType === 'survival' ? 'block' : 'none';
             coinOptions.style.display = gameType === 'coins' ? 'block' : 'none';
 
-            singlePlayerButton.style.backgroundColor = gameMode === 'single' ? 'yellow' : '';
-            twoPlayerButton.style.backgroundColor = gameMode === 'twoPlayer' ? 'yellow' : '';
-            threePlayerButton.style.backgroundColor = gameMode === 'threePlayer' ? 'yellow' : '';
+            singlePlayerButton.style.backgroundColor = gameMode === 'single' ? '#003333' : '';
+            singlePlayerButton.style.borderColor = gameMode === 'single' ? 'cyan' : '';
+            singlePlayerButton.style.color = gameMode === 'single' ? 'cyan' : '';
+            singlePlayerButton.style.boxShadow = gameMode === 'single' ? '0 0 10px cyan' : '';
+            twoPlayerButton.style.backgroundColor = gameMode === 'twoPlayer' ? '#003333' : '';
+            twoPlayerButton.style.borderColor = gameMode === 'twoPlayer' ? 'cyan' : '';
+            twoPlayerButton.style.color = gameMode === 'twoPlayer' ? 'cyan' : '';
+            twoPlayerButton.style.boxShadow = gameMode === 'twoPlayer' ? '0 0 10px cyan' : '';
+            threePlayerButton.style.backgroundColor = gameMode === 'threePlayer' ? '#003333' : '';
+            threePlayerButton.style.borderColor = gameMode === 'threePlayer' ? 'cyan' : '';
+            threePlayerButton.style.color = gameMode === 'threePlayer' ? 'cyan' : '';
+            threePlayerButton.style.boxShadow = gameMode === 'threePlayer' ? '0 0 10px cyan' : '';
 
-            easyButton.style.backgroundColor = difficulty === 'easy' ? 'yellow' : '';
-            mediumButton.style.backgroundColor = difficulty === 'medium' ? 'yellow' : '';
-            hardButton.style.backgroundColor = difficulty === 'hard' ? 'yellow' : '';
+            easyButton.style.backgroundColor = difficulty === 'easy' ? '#003333' : '';
+            easyButton.style.borderColor = difficulty === 'easy' ? 'cyan' : '';
+            easyButton.style.color = difficulty === 'easy' ? 'cyan' : '';
+            easyButton.style.boxShadow = difficulty === 'easy' ? '0 0 10px cyan' : '';
+            mediumButton.style.backgroundColor = difficulty === 'medium' ? '#003333' : '';
+            mediumButton.style.borderColor = difficulty === 'medium' ? 'cyan' : '';
+            mediumButton.style.color = difficulty === 'medium' ? 'cyan' : '';
+            mediumButton.style.boxShadow = difficulty === 'medium' ? '0 0 10px cyan' : '';
+            hardButton.style.backgroundColor = difficulty === 'hard' ? '#003333' : '';
+            hardButton.style.borderColor = difficulty === 'hard' ? 'cyan' : '';
+            hardButton.style.color = difficulty === 'hard' ? 'cyan' : '';
+            hardButton.style.boxShadow = difficulty === 'hard' ? '0 0 10px cyan' : '';
 
-            coins5Button.style.backgroundColor = coinQuantity === 5 ? 'yellow' : '';
-            coins10Button.style.backgroundColor = coinQuantity === 10 ? 'yellow' : '';
-            coins25Button.style.backgroundColor = coinQuantity === 25 ? 'yellow' : '';
+            coins5Button.style.backgroundColor = coinQuantity === 5 ? '#003333' : '';
+            coins5Button.style.borderColor = coinQuantity === 5 ? 'cyan' : '';
+            coins5Button.style.color = coinQuantity === 5 ? 'cyan' : '';
+            coins5Button.style.boxShadow = coinQuantity === 5 ? '0 0 10px cyan' : '';
+            coins10Button.style.backgroundColor = coinQuantity === 10 ? '#003333' : '';
+            coins10Button.style.borderColor = coinQuantity === 10 ? 'cyan' : '';
+            coins10Button.style.color = coinQuantity === 10 ? 'cyan' : '';
+            coins10Button.style.boxShadow = coinQuantity === 10 ? '0 0 10px cyan' : '';
+            coins25Button.style.backgroundColor = coinQuantity === 25 ? '#003333' : '';
+            coins25Button.style.borderColor = coinQuantity === 25 ? 'cyan' : '';
+            coins25Button.style.color = coinQuantity === 25 ? 'cyan' : '';
+            coins25Button.style.boxShadow = coinQuantity === 25 ? '0 0 10px cyan' : '';
 
-            sequentialButton.style.backgroundColor = coinAppearance === 'sequential' ? 'yellow' : '';
-            allAtOnceButton.style.backgroundColor = coinAppearance === 'all' ? 'yellow' : '';
+            sequentialButton.style.backgroundColor = coinAppearance === 'sequential' ? '#003333' : '';
+            sequentialButton.style.borderColor = coinAppearance === 'sequential' ? 'cyan' : '';
+            sequentialButton.style.color = coinAppearance === 'sequential' ? 'cyan' : '';
+            sequentialButton.style.boxShadow = coinAppearance === 'sequential' ? '0 0 10px cyan' : '';
+            allAtOnceButton.style.backgroundColor = coinAppearance === 'all' ? '#003333' : '';
+            allAtOnceButton.style.borderColor = coinAppearance === 'all' ? 'cyan' : '';
+            allAtOnceButton.style.color = coinAppearance === 'all' ? 'cyan' : '';
+            allAtOnceButton.style.boxShadow = coinAppearance === 'all' ? '0 0 10px cyan' : '';
 
             updateHighScoreDisplay();
         }
@@ -434,9 +536,18 @@
         // Game Type Selection
         pvpModeButton.addEventListener('click', () => {
             gameType = 'pvp';
-            pvpModeButton.style.backgroundColor = 'yellow';
+            pvpModeButton.style.backgroundColor = '#003333';
+            pvpModeButton.style.borderColor = 'cyan';
+            pvpModeButton.style.color = 'cyan';
+            pvpModeButton.style.boxShadow = '0 0 10px cyan';
             survivalModeButton.style.backgroundColor = '';
+            survivalModeButton.style.borderColor = '';
+            survivalModeButton.style.color = '';
+            survivalModeButton.style.boxShadow = '';
             coinsModeButton.style.backgroundColor = '';
+            coinsModeButton.style.borderColor = '';
+            coinsModeButton.style.color = '';
+            coinsModeButton.style.boxShadow = '';
             difficultyOptions.style.display = 'none';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
@@ -445,9 +556,18 @@
         });
         survivalModeButton.addEventListener('click', () => {
             gameType = 'survival';
-            survivalModeButton.style.backgroundColor = 'yellow';
+            survivalModeButton.style.backgroundColor = '#003333';
+            survivalModeButton.style.borderColor = 'cyan';
+            survivalModeButton.style.color = 'cyan';
+            survivalModeButton.style.boxShadow = '0 0 10px cyan';
             pvpModeButton.style.backgroundColor = '';
+            pvpModeButton.style.borderColor = '';
+            pvpModeButton.style.color = '';
+            pvpModeButton.style.boxShadow = '';
             coinsModeButton.style.backgroundColor = '';
+            coinsModeButton.style.borderColor = '';
+            coinsModeButton.style.color = '';
+            coinsModeButton.style.boxShadow = '';
             difficultyOptions.style.display = 'block';
             coinOptions.style.display = 'none';
             updateHighScoreDisplay();
@@ -456,9 +576,18 @@
         });
         coinsModeButton.addEventListener('click', () => {
             gameType = 'coins';
-            coinsModeButton.style.backgroundColor = 'yellow';
+            coinsModeButton.style.backgroundColor = '#003333';
+            coinsModeButton.style.borderColor = 'cyan';
+            coinsModeButton.style.color = 'cyan';
+            coinsModeButton.style.boxShadow = '0 0 10px cyan';
             pvpModeButton.style.backgroundColor = '';
+            pvpModeButton.style.borderColor = '';
+            pvpModeButton.style.color = '';
+            pvpModeButton.style.boxShadow = '';
             survivalModeButton.style.backgroundColor = '';
+            survivalModeButton.style.borderColor = '';
+            survivalModeButton.style.color = '';
+            survivalModeButton.style.boxShadow = '';
             coinOptions.style.display = 'block';
             difficultyOptions.style.display = 'none';
             updateHighScoreDisplay();
@@ -469,27 +598,54 @@
         // Player Selection
         singlePlayerButton.addEventListener('click', () => {
             gameMode = 'single';
-            singlePlayerButton.style.backgroundColor = 'yellow';
+            singlePlayerButton.style.backgroundColor = '#003333';
+            singlePlayerButton.style.borderColor = 'cyan';
+            singlePlayerButton.style.color = 'cyan';
+            singlePlayerButton.style.boxShadow = '0 0 10px cyan';
             twoPlayerButton.style.backgroundColor = '';
+            twoPlayerButton.style.borderColor = '';
+            twoPlayerButton.style.color = '';
+            twoPlayerButton.style.boxShadow = '';
             threePlayerButton.style.backgroundColor = '';
+            threePlayerButton.style.borderColor = '';
+            threePlayerButton.style.color = '';
+            threePlayerButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         twoPlayerButton.addEventListener('click', () => {
             gameMode = 'twoPlayer';
-            twoPlayerButton.style.backgroundColor = 'yellow';
+            twoPlayerButton.style.backgroundColor = '#003333';
+            twoPlayerButton.style.borderColor = 'cyan';
+            twoPlayerButton.style.color = 'cyan';
+            twoPlayerButton.style.boxShadow = '0 0 10px cyan';
             singlePlayerButton.style.backgroundColor = '';
+            singlePlayerButton.style.borderColor = '';
+            singlePlayerButton.style.color = '';
+            singlePlayerButton.style.boxShadow = '';
             threePlayerButton.style.backgroundColor = '';
+            threePlayerButton.style.borderColor = '';
+            threePlayerButton.style.color = '';
+            threePlayerButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         threePlayerButton.addEventListener('click', () => {
             gameMode = 'threePlayer';
-            threePlayerButton.style.backgroundColor = 'yellow';
+            threePlayerButton.style.backgroundColor = '#003333';
+            threePlayerButton.style.borderColor = 'cyan';
+            threePlayerButton.style.color = 'cyan';
+            threePlayerButton.style.boxShadow = '0 0 10px cyan';
             singlePlayerButton.style.backgroundColor = '';
+            singlePlayerButton.style.borderColor = '';
+            singlePlayerButton.style.color = '';
+            singlePlayerButton.style.boxShadow = '';
             twoPlayerButton.style.backgroundColor = '';
+            twoPlayerButton.style.borderColor = '';
+            twoPlayerButton.style.color = '';
+            twoPlayerButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
@@ -498,27 +654,54 @@
         // Difficulty Selection
         easyButton.addEventListener('click', () => {
             difficulty = 'easy';
-            easyButton.style.backgroundColor = 'yellow';
+            easyButton.style.backgroundColor = '#003333';
+            easyButton.style.borderColor = 'cyan';
+            easyButton.style.color = 'cyan';
+            easyButton.style.boxShadow = '0 0 10px cyan';
             mediumButton.style.backgroundColor = '';
+            mediumButton.style.borderColor = '';
+            mediumButton.style.color = '';
+            mediumButton.style.boxShadow = '';
             hardButton.style.backgroundColor = '';
+            hardButton.style.borderColor = '';
+            hardButton.style.color = '';
+            hardButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         mediumButton.addEventListener('click', () => {
             difficulty = 'medium';
-            mediumButton.style.backgroundColor = 'yellow';
+            mediumButton.style.backgroundColor = '#003333';
+            mediumButton.style.borderColor = 'cyan';
+            mediumButton.style.color = 'cyan';
+            mediumButton.style.boxShadow = '0 0 10px cyan';
             easyButton.style.backgroundColor = '';
+            easyButton.style.borderColor = '';
+            easyButton.style.color = '';
+            easyButton.style.boxShadow = '';
             hardButton.style.backgroundColor = '';
+            hardButton.style.borderColor = '';
+            hardButton.style.color = '';
+            hardButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         hardButton.addEventListener('click', () => {
             difficulty = 'hard';
-            hardButton.style.backgroundColor = 'yellow';
+            hardButton.style.backgroundColor = '#003333';
+            hardButton.style.borderColor = 'cyan';
+            hardButton.style.color = 'cyan';
+            hardButton.style.boxShadow = '0 0 10px cyan';
             easyButton.style.backgroundColor = '';
+            easyButton.style.borderColor = '';
+            easyButton.style.color = '';
+            easyButton.style.boxShadow = '';
             mediumButton.style.backgroundColor = '';
+            mediumButton.style.borderColor = '';
+            mediumButton.style.color = '';
+            mediumButton.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
@@ -527,27 +710,54 @@
         // Coin Quantity Selection
         coins5Button.addEventListener('click', () => {
             coinQuantity = 5;
-            coins5Button.style.backgroundColor = 'yellow';
+            coins5Button.style.backgroundColor = '#003333';
+            coins5Button.style.borderColor = 'cyan';
+            coins5Button.style.color = 'cyan';
+            coins5Button.style.boxShadow = '0 0 10px cyan';
             coins10Button.style.backgroundColor = '';
+            coins10Button.style.borderColor = '';
+            coins10Button.style.color = '';
+            coins10Button.style.boxShadow = '';
             coins25Button.style.backgroundColor = '';
+            coins25Button.style.borderColor = '';
+            coins25Button.style.color = '';
+            coins25Button.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         coins10Button.addEventListener('click', () => {
             coinQuantity = 10;
-            coins10Button.style.backgroundColor = 'yellow';
+            coins10Button.style.backgroundColor = '#003333';
+            coins10Button.style.borderColor = 'cyan';
+            coins10Button.style.color = 'cyan';
+            coins10Button.style.boxShadow = '0 0 10px cyan';
             coins5Button.style.backgroundColor = '';
+            coins5Button.style.borderColor = '';
+            coins5Button.style.color = '';
+            coins5Button.style.boxShadow = '';
             coins25Button.style.backgroundColor = '';
+            coins25Button.style.borderColor = '';
+            coins25Button.style.color = '';
+            coins25Button.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
         });
         coins25Button.addEventListener('click', () => {
             coinQuantity = 25;
-            coins25Button.style.backgroundColor = 'yellow';
+            coins25Button.style.backgroundColor = '#003333';
+            coins25Button.style.borderColor = 'cyan';
+            coins25Button.style.color = 'cyan';
+            coins25Button.style.boxShadow = '0 0 10px cyan';
             coins5Button.style.backgroundColor = '';
+            coins5Button.style.borderColor = '';
+            coins5Button.style.color = '';
+            coins5Button.style.boxShadow = '';
             coins10Button.style.backgroundColor = '';
+            coins10Button.style.borderColor = '';
+            coins10Button.style.color = '';
+            coins10Button.style.boxShadow = '';
             updateHighScoreDisplay();
             saveSelections();
             playClickSound();
@@ -556,15 +766,27 @@
         // Coin Appearance Selection
         sequentialButton.addEventListener('click', () => {
             coinAppearance = 'sequential';
-            sequentialButton.style.backgroundColor = 'yellow';
+            sequentialButton.style.backgroundColor = '#003333';
+            sequentialButton.style.borderColor = 'cyan';
+            sequentialButton.style.color = 'cyan';
+            sequentialButton.style.boxShadow = '0 0 10px cyan';
             allAtOnceButton.style.backgroundColor = '';
+            allAtOnceButton.style.borderColor = '';
+            allAtOnceButton.style.color = '';
+            allAtOnceButton.style.boxShadow = '';
             saveSelections();
             playClickSound();
         });
         allAtOnceButton.addEventListener('click', () => {
             coinAppearance = 'all';
-            allAtOnceButton.style.backgroundColor = 'yellow';
+            allAtOnceButton.style.backgroundColor = '#003333';
+            allAtOnceButton.style.borderColor = 'cyan';
+            allAtOnceButton.style.color = 'cyan';
+            allAtOnceButton.style.boxShadow = '0 0 10px cyan';
             sequentialButton.style.backgroundColor = '';
+            sequentialButton.style.borderColor = '';
+            sequentialButton.style.color = '';
+            sequentialButton.style.boxShadow = '';
             saveSelections();
             playClickSound();
         });
