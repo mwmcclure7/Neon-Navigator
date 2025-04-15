@@ -61,6 +61,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
+            font-weight: lighter;
         }
         a {
             color: cyan;
@@ -161,10 +162,17 @@
             <button id="threePlayer">Three Player</button>
         </p>
         <hr>
+        <p>
+            <button id="defaultMode">Default</button>
+            <button id="shotgunMode">Shotgun</button>
+            <button id="cannonMode">Cannon</button>
+            <button id="laserMode">Laser</button>
+            <button id="customMode">Custom</button>
+        </p>
+        <hr>
         <button id="start" style="width: 400px;">Start Round</button>
         <p>
             <button id="instructionsButton">Help</button>
-            <button id="settings">Settings</button>
             <button onclick="toggleFullscreen()">Fullscreen</button>
         </p>
         <p style="margin-top: 75px;">Learn how to make games like this at <a href="https://www.softwaresensei.ai" target="_blank" rel="noopener noreferrer">Sensei.AI</a></p>
@@ -191,7 +199,7 @@
         <label for="numBullets">Number of Bullets: </label>
         <input type="number" id="numBullets" min="1" max="10" step="1" value="1"><br>
         <label for="bulletSpeed">Bullet Speed (px/s): </label>
-        <input type="number" id="bulletSpeed" step="10" min="50" value="200"><br>
+        <input type="number" id="bulletSpeed" step="10" min="50" value="300"><br>
         <label for="numLives">Number of Lives: </label>
         <input type="number" id="numLives" step="1" min="1" max="99" value="1"><br>
         <input type="checkbox" id="bouncyWalls" checked> <label for="bouncyWalls">Bouncy Walls</label><br>
@@ -201,6 +209,8 @@
         <input type="checkbox" id="sharedPortals" checked> <label for="sharedPortals">Allow Shared Portals</label><br>
         <label for="portalSpawnDelay">Portal Spawn Delay (s): </label>
         <input type="number" id="portalSpawnDelay" step="0.1" min="0" value="0.2"><br>
+        <label for="recoilStrength">Recoil Strength: </label>
+        <input type="number" id="recoilStrength" step="10" min="0" max="1000" value="0"><br>
         <button id="saveSettings">Save Settings</button>
         <button id="resetSettings">Reset Settings</button>
     </div>
@@ -278,9 +288,8 @@
         const roundEndDiv = document.getElementById('roundEnd');
         const highScoreSpan = document.getElementById('highScore');
         const startButton = document.getElementById('start');
-        const settingsButton = document.getElementById('settings');
-        const resetSettingsButton = document.getElementById('resetSettings');
         const saveSettingsButton = document.getElementById('saveSettings');
+        const resetSettingsButton = document.getElementById('resetSettings');
         const resultP = document.getElementById('result');
         const backToMenuButton = document.getElementById('backToMenu');
         const playAgainButton = document.getElementById('playAgain');
@@ -290,6 +299,11 @@
         const pvpModeButton = document.getElementById('pvpMode');
         const survivalModeButton = document.getElementById('survivalMode');
         const coinsModeButton = document.getElementById('coinsMode');
+        const defaultModeButton = document.getElementById('defaultMode');
+        const shotgunModeButton = document.getElementById('shotgunMode');
+        const cannonModeButton = document.getElementById('cannonMode');
+        const laserModeButton = document.getElementById('laserMode');
+        const customModeButton = document.getElementById('customMode');
         const easyButton = document.getElementById('easy');
         const mediumButton = document.getElementById('medium');
         const hardButton = document.getElementById('hard');
@@ -320,6 +334,7 @@
         const portalSizeInput = document.getElementById('portalSize');
         const sharedPortalsInput = document.getElementById('sharedPortals');
         const portalSpawnDelayInput = document.getElementById('portalSpawnDelay');
+        const recoilStrengthInput = document.getElementById('recoilStrength');
 
         // Audio Functions
         function playLaserSound() {
@@ -354,6 +369,7 @@
         let difficulty = 'easy';
         let coinQuantity = 5;
         let coinAppearance = 'all';
+        let settingsMode = 'default';
 
         // Load stored selections
         let storedSelections = JSON.parse(localStorage.getItem('gameSelections')) || {
@@ -361,7 +377,8 @@
             gameType: 'pvp',
             difficulty: 'easy',
             coinQuantity: 5,
-            coinAppearance: 'all'
+            coinAppearance: 'all',
+            settingsMode: 'default'
         };
 
         // Apply stored selections
@@ -370,6 +387,7 @@
         difficulty = storedSelections.difficulty;
         coinQuantity = storedSelections.coinQuantity;
         coinAppearance = storedSelections.coinAppearance;
+        settingsMode = storedSelections.settingsMode || 'default';
 
         let highScores = JSON.parse(localStorage.getItem('highScores')) || {
             survival: { single: { easy: 0, medium: 0, hard: 0 }, twoPlayer: { easy: 0, medium: 0, hard: 0 }, threePlayer: { easy: 0, medium: 0, hard: 0 } },
@@ -411,7 +429,8 @@
             enablePortals: true,
             portalSize: 50,
             sharedPortals: false,
-            portalSpawnDelay: 0.1
+            portalSpawnDelay: 0.1,
+            recoilStrength: 0
         };
         let storedSettings = localStorage.getItem('settings') ? JSON.parse(localStorage.getItem('settings')) : {};
         let settings = { ...defaultSettings, ...storedSettings };
@@ -432,6 +451,7 @@
         portalSizeInput.value = settings.portalSize;
         sharedPortalsInput.checked = settings.sharedPortals;
         portalSpawnDelayInput.value = settings.portalSpawnDelay;
+        recoilStrengthInput.value = settings.recoilStrength;
         document.getElementById('bouncyWalls').checked = settings.bouncyWalls;
 
         // Key Mappings
@@ -458,7 +478,8 @@
                 gameType,
                 difficulty,
                 coinQuantity,
-                coinAppearance
+                coinAppearance,
+                settingsMode
             };
             localStorage.setItem('gameSelections', JSON.stringify(selections));
         }
@@ -492,6 +513,31 @@
             threePlayerButton.style.borderColor = gameMode === 'threePlayer' ? 'cyan' : '';
             threePlayerButton.style.color = gameMode === 'threePlayer' ? 'cyan' : '';
             threePlayerButton.style.boxShadow = gameMode === 'threePlayer' ? '0 0 10px cyan' : '';
+
+            defaultModeButton.style.backgroundColor = settingsMode === 'default' ? '#003333' : '';
+            defaultModeButton.style.borderColor = settingsMode === 'default' ? 'cyan' : '';
+            defaultModeButton.style.color = settingsMode === 'default' ? 'cyan' : '';
+            defaultModeButton.style.boxShadow = settingsMode === 'default' ? '0 0 10px cyan' : '';
+            
+            shotgunModeButton.style.backgroundColor = settingsMode === 'shotgun' ? '#003333' : '';
+            shotgunModeButton.style.borderColor = settingsMode === 'shotgun' ? 'cyan' : '';
+            shotgunModeButton.style.color = settingsMode === 'shotgun' ? 'cyan' : '';
+            shotgunModeButton.style.boxShadow = settingsMode === 'shotgun' ? '0 0 10px cyan' : '';
+            
+            cannonModeButton.style.backgroundColor = settingsMode === 'cannon' ? '#003333' : '';
+            cannonModeButton.style.borderColor = settingsMode === 'cannon' ? 'cyan' : '';
+            cannonModeButton.style.color = settingsMode === 'cannon' ? 'cyan' : '';
+            cannonModeButton.style.boxShadow = settingsMode === 'cannon' ? '0 0 10px cyan' : '';
+            
+            laserModeButton.style.backgroundColor = settingsMode === 'laser' ? '#003333' : '';
+            laserModeButton.style.borderColor = settingsMode === 'laser' ? 'cyan' : '';
+            laserModeButton.style.color = settingsMode === 'laser' ? 'cyan' : '';
+            laserModeButton.style.boxShadow = settingsMode === 'laser' ? '0 0 10px cyan' : '';
+            
+            customModeButton.style.backgroundColor = settingsMode === 'custom' ? '#003333' : '';
+            customModeButton.style.borderColor = settingsMode === 'custom' ? 'cyan' : '';
+            customModeButton.style.color = settingsMode === 'custom' ? 'cyan' : '';
+            customModeButton.style.boxShadow = settingsMode === 'custom' ? '0 0 10px cyan' : '';
 
             easyButton.style.backgroundColor = difficulty === 'easy' ? '#003333' : '';
             easyButton.style.borderColor = difficulty === 'easy' ? 'cyan' : '';
@@ -792,10 +838,208 @@
             playClickSound();
         });
 
-        // Settings Button
-        settingsButton.addEventListener('click', () => {
+        // Settings Mode Selection
+        defaultModeButton.addEventListener('click', () => {
+            settingsMode = 'default';
+            settings = { ...defaultSettings };
+            
+            // Update UI
+            defaultModeButton.style.backgroundColor = '#003333';
+            defaultModeButton.style.borderColor = 'cyan';
+            defaultModeButton.style.color = 'cyan';
+            defaultModeButton.style.boxShadow = '0 0 10px cyan';
+            
+            shotgunModeButton.style.backgroundColor = '';
+            shotgunModeButton.style.borderColor = '';
+            shotgunModeButton.style.color = '';
+            shotgunModeButton.style.boxShadow = '';
+            
+            cannonModeButton.style.backgroundColor = '';
+            cannonModeButton.style.borderColor = '';
+            cannonModeButton.style.color = '';
+            cannonModeButton.style.boxShadow = '';
+            
+            laserModeButton.style.backgroundColor = '';
+            laserModeButton.style.borderColor = '';
+            laserModeButton.style.color = '';
+            laserModeButton.style.boxShadow = '';
+            
+            customModeButton.style.backgroundColor = '';
+            customModeButton.style.borderColor = '';
+            customModeButton.style.color = '';
+            customModeButton.style.boxShadow = '';
+            
+            localStorage.setItem('settings', JSON.stringify(settings));
+            saveSelections();
+            playClickSound();
+        });
+        
+        shotgunModeButton.addEventListener('click', () => {
+            settingsMode = 'shotgun';
+            settings = { ...defaultSettings, numBullets: 3, shootCooldown: 1 };
+            
+            // Update UI
+            shotgunModeButton.style.backgroundColor = '#003333';
+            shotgunModeButton.style.borderColor = 'cyan';
+            shotgunModeButton.style.color = 'cyan';
+            shotgunModeButton.style.boxShadow = '0 0 10px cyan';
+            
+            defaultModeButton.style.backgroundColor = '';
+            defaultModeButton.style.borderColor = '';
+            defaultModeButton.style.color = '';
+            defaultModeButton.style.boxShadow = '';
+            
+            cannonModeButton.style.backgroundColor = '';
+            cannonModeButton.style.borderColor = '';
+            cannonModeButton.style.color = '';
+            cannonModeButton.style.boxShadow = '';
+            
+            laserModeButton.style.backgroundColor = '';
+            laserModeButton.style.borderColor = '';
+            laserModeButton.style.color = '';
+            laserModeButton.style.boxShadow = '';
+            
+            customModeButton.style.backgroundColor = '';
+            customModeButton.style.borderColor = '';
+            customModeButton.style.color = '';
+            customModeButton.style.boxShadow = '';
+            
+            localStorage.setItem('settings', JSON.stringify(settings));
+            saveSelections();
+            playClickSound();
+        });
+        
+        cannonModeButton.addEventListener('click', () => {
+            settingsMode = 'cannon';
+            settings = { ...defaultSettings, bulletCoinSize: 100, shootCooldown: 3, recoilStrength: 500 };
+            
+            // Update UI
+            cannonModeButton.style.backgroundColor = '#003333';
+            cannonModeButton.style.borderColor = 'cyan';
+            cannonModeButton.style.color = 'cyan';
+            cannonModeButton.style.boxShadow = '0 0 10px cyan';
+            // Cooldown
+            defaultModeButton.style.backgroundColor = '';
+            defaultModeButton.style.borderColor = '';
+            defaultModeButton.style.color = '';
+            defaultModeButton.style.boxShadow = '';
+            
+            shotgunModeButton.style.backgroundColor = '';
+            shotgunModeButton.style.borderColor = '';
+            shotgunModeButton.style.color = '';
+            shotgunModeButton.style.boxShadow = '';
+            
+            laserModeButton.style.backgroundColor = '';
+            laserModeButton.style.borderColor = '';
+            laserModeButton.style.color = '';
+            laserModeButton.style.boxShadow = '';
+            
+            customModeButton.style.backgroundColor = '';
+            customModeButton.style.borderColor = '';
+            customModeButton.style.color = '';
+            customModeButton.style.boxShadow = '';
+            
+            localStorage.setItem('settings', JSON.stringify(settings));
+            saveSelections();
+            playClickSound();
+        });
+        
+        laserModeButton.addEventListener('click', () => {
+            settingsMode = 'laser';
+            settings = { ...defaultSettings, shootCooldown: 0.01 };
+            
+            // Update UI
+            laserModeButton.style.backgroundColor = '#003333';
+            laserModeButton.style.borderColor = 'cyan';
+            laserModeButton.style.color = 'cyan';
+            laserModeButton.style.boxShadow = '0 0 10px cyan';
+            
+            defaultModeButton.style.backgroundColor = '';
+            defaultModeButton.style.borderColor = '';
+            defaultModeButton.style.color = '';
+            defaultModeButton.style.boxShadow = '';
+            
+            shotgunModeButton.style.backgroundColor = '';
+            shotgunModeButton.style.borderColor = '';
+            shotgunModeButton.style.color = '';
+            shotgunModeButton.style.boxShadow = '';
+            
+            cannonModeButton.style.backgroundColor = '';
+            cannonModeButton.style.borderColor = '';
+            cannonModeButton.style.color = '';
+            cannonModeButton.style.boxShadow = '';
+            
+            customModeButton.style.backgroundColor = '';
+            customModeButton.style.borderColor = '';
+            customModeButton.style.color = '';
+            customModeButton.style.boxShadow = '';
+            
+            localStorage.setItem('settings', JSON.stringify(settings));
+            saveSelections();
+            playClickSound();
+        });
+        
+        customModeButton.addEventListener('click', () => {
+            settingsMode = 'custom';
+            
+            // Update UI
+            customModeButton.style.backgroundColor = '#003333';
+            customModeButton.style.borderColor = 'cyan';
+            customModeButton.style.color = 'cyan';
+            customModeButton.style.boxShadow = '0 0 10px cyan';
+            
+            defaultModeButton.style.backgroundColor = '';
+            defaultModeButton.style.borderColor = '';
+            defaultModeButton.style.color = '';
+            defaultModeButton.style.boxShadow = '';
+            
+            shotgunModeButton.style.backgroundColor = '';
+            shotgunModeButton.style.borderColor = '';
+            shotgunModeButton.style.color = '';
+            shotgunModeButton.style.boxShadow = '';
+            
+            cannonModeButton.style.backgroundColor = '';
+            cannonModeButton.style.borderColor = '';
+            cannonModeButton.style.color = '';
+            cannonModeButton.style.boxShadow = '';
+            
+            laserModeButton.style.backgroundColor = '';
+            laserModeButton.style.borderColor = '';
+            laserModeButton.style.color = '';
+            laserModeButton.style.boxShadow = '';
+            
+            // Go to settings page
             menuDiv.style.display = 'none';
             settingsMenuDiv.style.display = 'block';
+            saveSelections();
+            playClickSound();
+        });
+
+        // Save Settings (now also returns to menu)
+        saveSettingsButton.addEventListener('click', () => {
+            settings.rotationSpeed = parseFloat(rotationSpeedInput.value);
+            settings.acceleration = parseFloat(accelerationInput.value);
+            settings.size = parseInt(sizeInput.value);
+            settings.bulletCoinSize = parseInt(bulletCoinSizeInput.value);
+            settings.colorPlayer1 = colorPlayer1Input.value;
+            settings.colorPlayer2 = colorPlayer2Input.value;
+            settings.colorPlayer3 = colorPlayer3Input.value;
+            settings.shootCooldown = parseFloat(shootCooldownInput.value);
+            settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
+            settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
+            settings.bouncyWalls = document.getElementById('bouncyWalls').checked;
+            settings.numLives = parseInt(numLivesInput.value);
+            settings.enablePortals = enablePortalsInput.checked;
+            settings.portalSize = parseInt(portalSizeInput.value);
+            settings.sharedPortals = sharedPortalsInput.checked;
+            settings.portalSpawnDelay = parseFloat(portalSpawnDelayInput.value);
+            settings.recoilStrength = parseInt(recoilStrengthInput.value);
+            localStorage.setItem('settings', JSON.stringify(settings));
+            settingsMenuDiv.style.display = 'none';
+            menuDiv.style.display = 'block';
+            settingsMode = 'custom';
+            saveSelections();
+            initializeUISelections();
             playClickSound();
         });
 
@@ -818,31 +1062,8 @@
             portalSizeInput.value = defaultSettings.portalSize;
             sharedPortalsInput.checked = defaultSettings.sharedPortals;
             portalSpawnDelayInput.value = defaultSettings.portalSpawnDelay;
+            recoilStrengthInput.value = defaultSettings.recoilStrength;
             localStorage.setItem('settings', JSON.stringify(settings));
-            playClickSound();
-        });
-
-        // Save Settings (now also returns to menu)
-        saveSettingsButton.addEventListener('click', () => {
-            settings.rotationSpeed = parseFloat(rotationSpeedInput.value);
-            settings.acceleration = parseFloat(accelerationInput.value);
-            settings.size = parseInt(sizeInput.value);
-            settings.bulletCoinSize = parseInt(bulletCoinSizeInput.value);
-            settings.colorPlayer1 = colorPlayer1Input.value;
-            settings.colorPlayer2 = colorPlayer2Input.value;
-            settings.colorPlayer3 = colorPlayer3Input.value;
-            settings.shootCooldown = parseFloat(shootCooldownInput.value);
-            settings.numBullets = Math.min(10, Math.max(1, parseInt(numBulletsInput.value || 1)));
-            settings.bulletSpeed = parseFloat(bulletSpeedInput.value);
-            settings.bouncyWalls = document.getElementById('bouncyWalls').checked;
-            settings.numLives = parseInt(numLivesInput.value);
-            settings.enablePortals = enablePortalsInput.checked;
-            settings.portalSize = parseInt(portalSizeInput.value);
-            settings.sharedPortals = sharedPortalsInput.checked;
-            settings.portalSpawnDelay = parseFloat(portalSpawnDelayInput.value);
-            localStorage.setItem('settings', JSON.stringify(settings));
-            settingsMenuDiv.style.display = 'none';
-            menuDiv.style.display = 'block';
             playClickSound();
         });
 
@@ -1032,13 +1253,13 @@
                         const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
                         hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
                     } else {
-                        const spreadDegrees = numBullets === 10 ? 360 : 40 * (numBullets - 1);
+                        const spreadDegrees = 20 * (numBullets - 1);
                         const spreadRadians = spreadDegrees * Math.PI / 180;
                         const angleStep = spreadRadians / (numBullets - 1 || 1);
                         const startAngle = this.angle - (spreadRadians / 2);
 
                         for (let i = 0; i < numBullets; i++) {
-                            const bulletAngle = numBullets === 10 ? this.angle + (i * 2 * Math.PI / numBullets) : startAngle + (i * angleStep);
+                            const bulletAngle = startAngle + (i * angleStep);
                             const spawnX = this.position.x + Math.sin(bulletAngle) * offset;
                             const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
                             const shootVx = Math.sin(bulletAngle) * shootSpeed;
@@ -1053,6 +1274,10 @@
                     this.shootCooldown = this.shootCooldownTime;
                     playLaserSound();
                     if (gameMode === 'single') shotCount++;
+                    if (settings.recoilStrength > 0) {
+                        this.velocity.x -= Math.sin(this.angle) * settings.recoilStrength;
+                        this.velocity.y += Math.cos(this.angle) * settings.recoilStrength;
+                    }
                 }
                 if (this.shootCooldown > 0) this.shootCooldown -= delta;
             }
