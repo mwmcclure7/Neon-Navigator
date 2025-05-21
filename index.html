@@ -1190,6 +1190,50 @@
                     this.engineSound.pause();
                     this.engineSound.currentTime = 0;
                 }
+
+                if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
+                    const numBullets = settings.numBullets;
+                    const offset = this.size + settings.bulletCoinSize / 2;
+                    const shootSpeed = settings.bulletSpeed;
+
+                    if (numBullets === 1) {
+                        const spawnX = this.position.x + Math.sin(this.angle) * offset;
+                        const spawnY = this.position.y - Math.cos(this.angle) * offset;
+                        const shootVx = Math.sin(this.angle) * shootSpeed;
+                        const shootVy = -Math.cos(this.angle) * shootSpeed;
+                        const hazardVx = this.velocity.x + shootVx;
+                        const hazardVy = this.velocity.y + shootVy;
+                        const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
+                        hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
+                    } else {
+                        const spreadDegrees = 20 * (numBullets - 1);
+                        const spreadRadians = spreadDegrees * Math.PI / 180;
+                        const angleStep = spreadRadians / (numBullets - 1 || 1);
+                        const startAngle = this.angle - (spreadRadians / 2);
+
+                        for (let i = 0; i < numBullets; i++) {
+                            const bulletAngle = startAngle + (i * angleStep);
+                            const spawnX = this.position.x + Math.sin(bulletAngle) * offset;
+                            const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
+                            const shootVx = Math.sin(bulletAngle) * shootSpeed;
+                            const shootVy = -Math.cos(bulletAngle) * shootSpeed;
+                            const hazardVx = this.velocity.x + shootVx;
+                            const hazardVy = this.velocity.y + shootVy;
+                            const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
+                            hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
+                        }
+                    }
+
+                    this.shootCooldown = this.shootCooldownTime;
+                    playLaserSound();
+                    if (gameMode === 'single') shotCount++;
+                    if (settings.recoilStrength > 0) {
+                        this.velocity.x -= Math.sin(this.angle) * settings.recoilStrength;
+                        this.velocity.y += Math.cos(this.angle) * settings.recoilStrength;
+                    }
+                }
+                if (this.shootCooldown > 0) this.shootCooldown -= delta;
+                
                 this.position.x += this.velocity.x * delta;
                 this.position.y += this.velocity.y * delta;
 
@@ -1237,49 +1281,6 @@
                 if (this.teleportCooldown > 0) {
                     this.teleportCooldown -= delta;
                 }
-
-                if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
-                    const numBullets = settings.numBullets;
-                    const offset = this.size + settings.bulletCoinSize / 2;
-                    const shootSpeed = settings.bulletSpeed;
-
-                    if (numBullets === 1) {
-                        const spawnX = this.position.x + Math.sin(this.angle) * offset;
-                        const spawnY = this.position.y - Math.cos(this.angle) * offset;
-                        const shootVx = Math.sin(this.angle) * shootSpeed;
-                        const shootVy = -Math.cos(this.angle) * shootSpeed;
-                        const hazardVx = this.velocity.x + shootVx;
-                        const hazardVy = this.velocity.y + shootVy;
-                        const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
-                        hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
-                    } else {
-                        const spreadDegrees = 20 * (numBullets - 1);
-                        const spreadRadians = spreadDegrees * Math.PI / 180;
-                        const angleStep = spreadRadians / (numBullets - 1 || 1);
-                        const startAngle = this.angle - (spreadRadians / 2);
-
-                        for (let i = 0; i < numBullets; i++) {
-                            const bulletAngle = startAngle + (i * angleStep);
-                            const spawnX = this.position.x + Math.sin(bulletAngle) * offset;
-                            const spawnY = this.position.y - Math.cos(bulletAngle) * offset;
-                            const shootVx = Math.sin(bulletAngle) * shootSpeed;
-                            const shootVy = -Math.cos(bulletAngle) * shootSpeed;
-                            const hazardVx = this.velocity.x + shootVx;
-                            const hazardVy = this.velocity.y + shootVy;
-                            const speed = Math.sqrt(hazardVx ** 2 + hazardVy ** 2);
-                            hazards.push(new Hazard(spawnX, spawnY, speed, { x: hazardVx / speed, y: hazardVy / speed }));
-                        }
-                    }
-
-                    this.shootCooldown = this.shootCooldownTime;
-                    playLaserSound();
-                    if (gameMode === 'single') shotCount++;
-                    if (settings.recoilStrength > 0) {
-                        this.velocity.x -= Math.sin(this.angle) * settings.recoilStrength;
-                        this.velocity.y += Math.cos(this.angle) * settings.recoilStrength;
-                    }
-                }
-                if (this.shootCooldown > 0) this.shootCooldown -= delta;
             }
 
             spawnPortal() {
