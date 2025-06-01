@@ -1587,12 +1587,72 @@ function pollGamepad() {
 
 // Game Loop
 let lastTime = 0;
-        function gameLoop(currentTime) {
-            const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
-            lastTime = currentTime;
+        function pollGamepadMenu() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gp = gamepads[0];
+    if (!gp) return;
+    // Navigation: up/down (dpad or left stick)
+    const dpadUp = gp.buttons[12]?.pressed;
+    const dpadDown = gp.buttons[13]?.pressed;
+    const stickY = gp.axes[1] || 0;
+    // A = 0, Y = 3
+    const aPressed = gp.buttons[0]?.pressed;
+    const yPressed = gp.buttons[3]?.pressed;
+    // Edge detection
+    pollGamepadMenu.prev = pollGamepadMenu.prev || {};
+    const prev = pollGamepadMenu.prev;
+    // Find visible and focusable buttons
+    let buttons = [];
+    if (gameState === 'menu') {
+        buttons = Array.from(menuDiv.querySelectorAll('button')).filter(b => b.offsetParent !== null && !b.disabled);
+    } else if (gameState === 'roundEnd') {
+        buttons = Array.from(roundEndDiv.querySelectorAll('button')).filter(b => b.offsetParent !== null && !b.disabled);
+    }
+    if (buttons.length === 0) return;
+    // Track focus index
+    pollGamepadMenu.focusIndex = pollGamepadMenu.focusIndex || 0;
+    let moved = false;
+    // Up
+    if ((dpadUp && !prev.dpadUp) || stickY < -0.5) {
+        pollGamepadMenu.focusIndex = (pollGamepadMenu.focusIndex - 1 + buttons.length) % buttons.length;
+        moved = true;
+    }
+    // Down
+    if ((dpadDown && !prev.dpadDown) || stickY > 0.5) {
+        pollGamepadMenu.focusIndex = (pollGamepadMenu.focusIndex + 1) % buttons.length;
+        moved = true;
+    }
+    // Ensure focusIndex is valid
+    if (pollGamepadMenu.focusIndex >= buttons.length || pollGamepadMenu.focusIndex < 0) {
+        pollGamepadMenu.focusIndex = 0;
+    }
+    // Focus the button if valid
+    if (buttons[pollGamepadMenu.focusIndex] && (moved || document.activeElement.tagName !== 'BUTTON' || !buttons.includes(document.activeElement))) {
+        buttons[pollGamepadMenu.focusIndex].focus();
+    }
+    // Activate with A
+    if (aPressed && !prev.aPressed) {
+        buttons[pollGamepadMenu.focusIndex].click();
+    }
+    // Play Again with Y on roundEnd
+    if (gameState === 'roundEnd' && yPressed && !prev.yPressed) {
+        playAgainButton.click();
+    }
+    // Store previous button states
+    pollGamepadMenu.prev = {
+        dpadUp,
+        dpadDown,
+        aPressed,
+        yPressed
+    };
+}
 
-            if (gameState === 'playing') {
-                pollGamepad(); // Always poll before player update
+function gameLoop(currentTime) {
+    const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
+    lastTime = currentTime;
+
+    if (gameState === 'playing') {
+        pollGamepad(); // Always poll before player update
                 if (!gameOver) {
                     players.forEach(player => player.update(delta));
                     if (gameType !== 'coins') {
@@ -1790,6 +1850,15 @@ let lastTime = 0;
             }
 
             requestAnimationFrame(gameLoop);
+
+// Poll gamepad for menu navigation and round end
+function pollGamepadUI() {
+    if (gameState === 'menu' || gameState === 'roundEnd') {
+        pollGamepadMenu();
+    }
+    requestAnimationFrame(pollGamepadUI);
+}
+pollGamepadUI();
         }
 
         // End Round
