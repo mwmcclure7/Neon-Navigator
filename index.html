@@ -1180,18 +1180,33 @@
             }
             update(delta) {
                 if (!this.alive) return;
-                if (this.keys.left) this.angle -= this.rotationSpeed * delta;
-                if (this.keys.right) this.angle += this.rotationSpeed * delta;
-                if (this.keys.up) {
-                    this.velocity.x += Math.sin(this.angle) * this.acceleration * delta;
-                    this.velocity.y -= Math.cos(this.angle) * this.acceleration * delta;
+                // Use analog (gamepad) or digital (keyboard) turning
+                if (typeof this.keys._gamepadTurn === 'number' && Math.abs(this.keys._gamepadTurn) > 0.2) {
+                    this.angle += this.rotationSpeed * this.keys._gamepadTurn * delta;
+                } else {
+                    if (this.keys.left) this.angle -= this.rotationSpeed * delta;
+                    if (this.keys.right) this.angle += this.rotationSpeed * delta;
+                }
+                // Use analog (gamepad) or digital (keyboard) acceleration
+                let analogAccel = (this.keys._gamepadAccelActive) ? this.keys._gamepadAccel : (this.keys.up ? 1 : 0);
+                if (analogAccel > 0.05) {
+                    this.velocity.x += Math.sin(this.angle) * this.acceleration * analogAccel * delta;
+                    this.velocity.y -= Math.cos(this.angle) * this.acceleration * analogAccel * delta;
                     if (this.engineSound.paused) this.engineSound.play();
                 } else {
                     this.engineSound.pause();
                     this.engineSound.currentTime = 0;
                 }
 
-                if (gameType === 'pvp' && this.keys.shoot && this.shootCooldown <= 0) {
+                // Only fire on new press (keyboard or gamepad)
+                let shootNow = false;
+                if (typeof this.keys._gamepadShoot !== 'undefined') {
+                    shootNow = this.keys._gamepadShoot && this.shootCooldown <= 0;
+                    this.keys._gamepadShoot = false;
+                } else {
+                    shootNow = this.keys.shoot && this.shootCooldown <= 0;
+                }
+                if (gameType === 'pvp' && shootNow) {
                     const numBullets = settings.numBullets;
                     const offset = this.size + settings.bulletCoinSize / 2;
                     const shootSpeed = settings.bulletSpeed;
@@ -1309,7 +1324,7 @@
                 ctx.closePath();
                 ctx.fillStyle = this.color;
                 ctx.fill();
-                if (this.keys.up) {
+                if (this.keys.up || this.keys._gamepadAccelActive) {
                     ctx.beginPath();
                     ctx.moveTo(-this.size / 2, this.size);
                     ctx.lineTo(0, this.size * 1.5);
@@ -1519,13 +1534,65 @@
             }
         }
 
-        // Game Loop
-        let lastTime = 0;
+        // --- Gamepad Support for Player 1 ---
+let prevGamepadButtons = [];
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gp = gamepads[0];
+    if (!gp) return;
+    // Triggers for analog acceleration
+    const lt = gp.buttons[6]?.value || 0;
+    const rt = gp.buttons[7]?.value || 0;
+    let accel = 0;
+    if (lt > 0.05 || rt > 0.05) {
+        accel = Math.abs(rt) > Math.abs(lt) ? rt : lt;
+        keysPlayer1._gamepadAccel = accel;
+        keysPlayer1._gamepadAccelActive = true;
+        keysPlayer1.up = false;
+    } else {
+        keysPlayer1._gamepadAccel = 0;
+        keysPlayer1._gamepadAccelActive = false;
+    }
+    // Left stick X for analog turning
+    const lx = gp.axes[0] || 0;
+    keysPlayer1._gamepadTurn = Math.abs(lx) > 0.2 ? lx : 0;
+    // Also set left/right digital for compatibility
+    keysPlayer1.left = lx < -0.2;
+    keysPlayer1.right = lx > 0.2;
+    // Bumpers for shooting (hold to repeat)
+    const lb = gp.buttons[4]?.pressed;
+    const rb = gp.buttons[5]?.pressed;
+    keysPlayer1._gamepadShoot = undefined; // not needed now
+    keysPlayer1.shoot = lb || rb;
+    // A button for portal (hold to mimic keyboard hold)
+    const aPressed = gp.buttons[0]?.pressed;
+    if (aPressed) {
+        keysPlayer1._gamepadPortalHold = true;
+        keysPlayer1.left = true;
+        keysPlayer1.right = true;
+    } else {
+        keysPlayer1._gamepadPortalHold = false;
+        // Only release left/right if they were set by the gamepad (not by stick)
+        if (Math.abs(lx) <= 0.2) {
+            keysPlayer1.left = false;
+            keysPlayer1.right = false;
+        }
+    }
+    // canSpawnPortal logic: only allow spawn once per press
+    if (!aPressed) {
+        keysPlayer1.canSpawnPortal = true;
+    }
+    prevGamepadButtons = gp.buttons.map(b => b.pressed);
+}
+
+// Game Loop
+let lastTime = 0;
         function gameLoop(currentTime) {
             const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
             lastTime = currentTime;
 
             if (gameState === 'playing') {
+                pollGamepad(); // Always poll before player update
                 if (!gameOver) {
                     players.forEach(player => player.update(delta));
                     if (gameType !== 'coins') {
