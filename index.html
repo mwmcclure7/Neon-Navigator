@@ -59,6 +59,7 @@
             filter: drop-shadow(0 0 10px #a0ffa0);
             background: linear-gradient(to top, #ffff00, #00ffff);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
             font-weight: lighter;
@@ -1253,11 +1254,18 @@
                 this.position.y += this.velocity.y * delta;
 
                 if (settings.enablePortals && this.keys.left && this.keys.right && this.keys.canSpawnPortal) {
-                    this.portalHoldTime += delta;
-                    if (this.portalHoldTime >= settings.portalSpawnDelay) {
+                    // If controller X button is held, spawn immediately (no delay)
+                    if (this.keys._gamepadPortalHold) {
                         this.spawnPortal();
                         this.keys.canSpawnPortal = false;
                         this.portalHoldTime = 0;
+                    } else {
+                        this.portalHoldTime += delta;
+                        if (this.portalHoldTime >= settings.portalSpawnDelay) {
+                            this.spawnPortal();
+                            this.keys.canSpawnPortal = false;
+                            this.portalHoldTime = 0;
+                        }
                     }
                 } else {
                     this.portalHoldTime = 0;
@@ -1564,9 +1572,9 @@ function pollGamepad() {
     const rb = gp.buttons[5]?.pressed;
     keysPlayer1._gamepadShoot = undefined; // not needed now
     keysPlayer1.shoot = lb || rb;
-    // A button for portal (hold to mimic keyboard hold)
-    const aPressed = gp.buttons[0]?.pressed;
-    if (aPressed) {
+    // X button for portal (hold to mimic keyboard hold)
+    const xPressed = gp.buttons[2]?.pressed;
+    if (xPressed) {
         keysPlayer1._gamepadPortalHold = true;
         keysPlayer1.left = true;
         keysPlayer1.right = true;
@@ -1579,7 +1587,7 @@ function pollGamepad() {
         }
     }
     // canSpawnPortal logic: only allow spawn once per press
-    if (!aPressed) {
+    if (!xPressed) {
         keysPlayer1.canSpawnPortal = true;
     }
     prevGamepadButtons = gp.buttons.map(b => b.pressed);
