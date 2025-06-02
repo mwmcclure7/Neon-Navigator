@@ -468,6 +468,7 @@
                 if (player.engineSound) {
                     player.engineSound.pause();
                     player.engineSound.currentTime = 0;
+                    player.engineSound = null;
                 }
             });
         }
